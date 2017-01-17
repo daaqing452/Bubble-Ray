@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2015
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bubble Raycasting", "Bubble Raycasting.csproj", "{68FDB43D-A693-78A4-164B-F6B367B7CA5F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bubble Raycasting.Editor", "Bubble Raycasting.Editor.csproj", "{772707C8-30CC-A002-B1E6-E62A8FD19B8F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{68FDB43D-A693-78A4-164B-F6B367B7CA5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68FDB43D-A693-78A4-164B-F6B367B7CA5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68FDB43D-A693-78A4-164B-F6B367B7CA5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68FDB43D-A693-78A4-164B-F6B367B7CA5F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{772707C8-30CC-A002-B1E6-E62A8FD19B8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{772707C8-30CC-A002-B1E6-E62A8FD19B8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{772707C8-30CC-A002-B1E6-E62A8FD19B8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{772707C8-30CC-A002-B1E6-E62A8FD19B8F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
