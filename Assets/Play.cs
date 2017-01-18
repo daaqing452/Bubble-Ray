@@ -5,7 +5,6 @@ using UnityEngine;
 public class Play : MonoBehaviour {
 
     Color COLOR_NONE = new Color(1, 1, 1);
-    Color COLOR_SELECTED = new Color(0, 0, 1);
 
     public static bool visibilityRay = false;
     public static bool visibilityFishPole = false;
@@ -58,8 +57,7 @@ public class Play : MonoBehaviour {
         if (status == 0) {
             g.GetComponent<Renderer>().material.color = COLOR_NONE;
         } else {
-            g.GetComponent<Renderer>().material.color = COLOR_SELECTED;
-            //g.GetComponent<Renderer>().material = Resources.Load("Dark Purple.mat") as Material;
+            g.GetComponent<Renderer>().material = Resources.Load("Dark Blue") as Material;
         }
     }
     void DrawTwoOrderBezierCurve(Vector3 p, Vector3 q, Vector3 v)
@@ -103,79 +101,202 @@ class BubbleRay {
         bubble = GameObject.Find("Bubble Ray/Bubble");
     }
 
-    public GameObject Select()
-    {
+    public GameObject Select() {
         Vector3 p = play.controller.transform.position;
         Vector3 v = Play.QuaternionToVector(play.controller.transform.rotation);
+        Vector3 e = play.cameraHead.transform.position;
+
         GameObject selectedObject = null;
-        Transform transformBubble = bubble.transform;
-        float minDist = 1e20f;
-        switch (method)
-        {
+        Vector3 renderPoint = POINT_HIDE;
+        Quaternion renderRotation = QUETERNION_NULL;
+        Vector3 renderUnit = UNIT_CIRCLE;
+        float range0 = 1e20f;
+        float range1 = 1e20f;
+
+        float minF = 1e20f;
+        switch (method) {
             case "hand centered":
-                Vector3 intersectPoint = POINT_HIDE;
-                foreach (GameObject g in play.playProps)
-                {
+                foreach (GameObject g in play.playProps) {
                     Vector3 q = g.transform.position;
                     if (Mathf.Abs(v.x + v.y + v.z) < EPS) continue;
-                    float t = -(p.x + p.y + p.z - q.x - q.y - q.z) / (v.x + v.y + v.z);
+                    float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
                     Vector3 i = p + v * t;
-                    float d = (q - i).magnitude - g.transform.localScale.x / 2;
-                    if (d < minDist)
-                    {
-                        minDist = d;
+                    float f = (q - i).magnitude - g.transform.localScale.x / 2;
+                    if (f < minF) {
+                        renderPoint = i;
+                        range1 = range0;
+                        range0 = f;
+                        minF = f;
                         selectedObject = g;
-                        intersectPoint = i;
+                    } else {
+                        range1 = Mathf.Min(range1, f);
                     }
                 }
-                transformBubble.position = (visibilityBubble) ? intersectPoint : POINT_HIDE;
-                transformBubble.rotation = QUETERNION_NULL;
-                transformBubble.localScale = UNIT_BALL * ((visibilityBubble) ? minDist * 2 : 1);
+                renderUnit = UNIT_BALL;
                 break;
 
-            case "dynamic plane":
-                Vector3 pointInPlane = POINT_HIDE;
-                foreach (GameObject g in play.playProps)
-                {
-                    Vector3 q = g.transform.position;
+            case "depth plane":
+                foreach (GameObject g in play.playProps) {
                     if (Mathf.Abs(v.z) < EPS) continue;
+                    Vector3 q = g.transform.position;
                     float t = (q.z - p.z) / v.z;
                     Vector3 i = p + v * t;
-                    float d = (q - i).magnitude - g.transform.localScale.x / 2;
-                    if (d < minDist)
-                    {
-                        minDist = d;
+                    float f = (q - i).magnitude - g.transform.localScale.x / 2;
+                    if (f < minF) {
+                        renderPoint = i;
+                        range1 = range0;
+                        range0 = f;
+                        minF = f;
                         selectedObject = g;
-                        pointInPlane = i;
+                    } else {
+                        range1 = Mathf.Min(range1, f);
                     }
                 }
-                transformBubble.position = (visibilityBubble) ? pointInPlane : POINT_HIDE;
-                transformBubble.rotation = QUETERNION_NULL;
-                transformBubble.localScale = UNIT_CIRCLE * ((visibilityBubble) ? minDist * 2 : 1);
                 break;
 
-            case "dynamic tangent":
-                Vector3 pointInSphere = POINT_HIDE;
-                foreach (GameObject g in play.playProps)
-                {
+            case "fixed plane":
+                float D = -1e20f;
+                foreach (GameObject g in play.playProps) {
                     Vector3 q = g.transform.position;
-                    Vector3 e = q - play.cameraHead.transform.position;
-                    if (Mathf.Abs(v.x * e.x + v.y * e.y + v.z * e.z) < EPS) continue;
-                    float t = -((p.x - q.x) * e.x + (p.y - q.y) * e.y + (p.z - q.z) * e.z) / (v.x * e.x + v.y * e.y + v.z * e.z);
+                    D = Mathf.Max(D, q.z + g.transform.localScale.x / 2);
+                }
+                foreach (GameObject g in play.playProps) {
+                    if (Mathf.Abs(v.z) < EPS) continue;
+                    Vector3 q = g.transform.position;
+                    Vector3 qq = e + (q - e) / (q.z - e.z) * D;
+                    float t = (D - p.z) / v.z;
                     Vector3 i = p + v * t;
-                    float d = (q - i).magnitude - g.transform.localScale.x / 2;
-                    if (d < minDist)
-                    {
-                        minDist = d;
+                    float ShadowScale = g.transform.localScale.x / (q.z - e.z) * D;
+                    float f = (qq - i).magnitude - ShadowScale / 2;
+                    if (f < minF) {
+                        renderPoint = i;
+                        range1 = range0;
+                        range0 = f;
+                        minF = f;
                         selectedObject = g;
-                        pointInSphere = i;
+                    }
+                    else {
+                        range1 = Mathf.Min(range1, f);
                     }
                 }
-                transformBubble.position = (visibilityBubble) ? pointInSphere : POINT_HIDE;
-                transformBubble.rotation = play.cameraHead.transform.rotation;
-                transformBubble.localScale = UNIT_CIRCLE * ((visibilityBubble) ? minDist * 2 : 1);
+                break;
+
+            case "centripetal plane":
+                foreach (GameObject g in play.playProps) {
+                    Vector3 q = g.transform.position;
+                    Vector3 n = Play.QuaternionToVector(play.cameraHead.transform.rotation);
+                    if (Mathf.Abs(v.x * n.x + v.y * n.y + v.z * n.z) < EPS) continue;
+                    float t = -((p.x - q.x) * n.x + (p.y - q.y) * n.y + (p.z - q.z) * n.z) / (v.x * n.x + v.y * n.y + v.z * n.z);
+                    Vector3 i = p + v * t;
+                    float f = (q - i).magnitude - g.transform.localScale.x / 2;
+                    if (f < minF) {
+                        renderPoint = i;
+                        range1 = range0;
+                        range0 = f;
+                        minF = f;
+                        selectedObject = g;
+                    } else {
+                        range1 = Mathf.Min(range1, f);
+                    }
+                }
+                renderRotation = play.cameraHead.transform.rotation;
+                break;
+
+            case "depth sphere":
+                foreach (GameObject g in play.playProps) {
+                    Vector3 q = g.transform.position;
+                    Vector3 u = q - e;
+                    float a = v.x * v.x + v.y * v.y + v.z * v.z;
+                    float b = 2 * ((p.x - e.x) * v.x + (p.y - e.y) * v.y + (p.z - e.z) * v.z);
+                    float c = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) + (p.z - e.z) * (p.z - e.z) - u.magnitude * u.magnitude;
+                    if (b * b - 4 * a * c < 0) continue;
+                    if (Mathf.Abs(a) < EPS) continue;
+                    float t = (-b + Mathf.Sqrt(b * b - 4 * a * c)) / (2 * a);
+                    Vector3 i = p + v * t;
+                    Vector3 w = i - e;
+                    float alpha = Mathf.Acos((u.x * w.x + u.y * w.y + u.z * w.z) / u.magnitude / w.magnitude);
+                    float d = (q - i).magnitude - g.transform.localScale.x / 2;
+                    float f = alpha * u.magnitude;
+                    if (f < minF) {
+                        renderPoint = i;
+                        range1 = range0;
+                        range0 = d;
+                        minF = f;
+                        selectedObject = g;
+                    }
+                    else {
+                        range1 = Mathf.Min(range1, d);
+                    }
+                }
+                renderRotation = play.cameraHead.transform.rotation;
+                break;
+
+            case "angular":
+                foreach (GameObject g in play.playProps) {
+                    Vector3 q = g.transform.position;
+                    Vector3 u = q - e;
+                    if (Mathf.Abs(v.x * u.x + v.y * u.y + v.z * u.z) < EPS) continue;
+                    if (Mathf.Abs(u.magnitude) < EPS) continue;
+                    float t = -((p.x - q.x) * u.x + (p.y - q.y) * u.y + (p.z - q.z) * u.z) / (v.x * u.x + v.y * u.y + v.z * u.z);
+                    Vector3 i = p + v * t;
+                    float d = (q - i).magnitude - g.transform.localScale.x / 2;
+                    float f = d / u.magnitude;
+                    if (f < minF) {
+                        renderPoint = i;
+                        range1 = range0;
+                        range0 = f;
+                        minF = f;
+                        selectedObject = g;
+                    }
+                    else {
+                        range1 = Mathf.Min(range1, d);
+                    }
+                }
+                renderRotation = play.cameraHead.transform.rotation;
+                break;
+
+            case "fixed sphere":
+                float R = -1e20f;
+                foreach (GameObject g in play.playProps) {
+                    Vector3 q = g.transform.position;
+                    R = Mathf.Max(R, (q - e).magnitude + g.transform.localScale.x / 2);
+                }
+                foreach (GameObject g in play.playProps) {
+                    Vector3 q = g.transform.position;
+                    Vector3 qq = e + (q - e).normalized * R;
+                    Vector3 u = qq - e;
+                    float a = v.x * v.x + v.y * v.y + v.z * v.z;
+                    float b = 2 * ((p.x - e.x) * v.x + (p.y - e.y) * v.y + (p.z - e.z) * v.z);
+                    float c = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) + (p.z - e.z) * (p.z - e.z) - u.magnitude * u.magnitude;
+                    if (b * b - 4 * a * c < 0) continue;
+                    if (Mathf.Abs(a) < EPS) continue;
+                    float t = (-b + Mathf.Sqrt(b * b - 4 * a * c)) / (2 * a);
+                    Vector3 i = p + v * t;
+                    Vector3 w = i - e;
+                    float alpha = Mathf.Acos((u.x * w.x + u.y * w.y + u.z * w.z) / u.magnitude / w.magnitude);
+                    float shadowScale = g.transform.localScale.x / (q - e).magnitude * R;
+                    float d = (qq - i).magnitude - shadowScale / 2;
+                    float f = alpha * u.magnitude;
+                    if (f < minF) {
+                        renderPoint = i;
+                        range1 = range0;
+                        range0 = d;
+                        minF = f;
+                        selectedObject = g;
+                    }
+                    else {
+                        range1 = Mathf.Min(range1, d);
+                    }
+                }
+                renderRotation = play.cameraHead.transform.rotation;
                 break;
         }
+        float renderScale = range0 * 2;
+        //float renderScale = Mathf.Min(range0 + selectedObject.transform.localScale.x, range1) * 2;
+        Transform transformBubble = bubble.transform;
+        transformBubble.position = (visibilityBubble) ? renderPoint : POINT_HIDE;
+        transformBubble.rotation = renderRotation;
+        transformBubble.localScale = renderUnit * ((visibilityBubble) ? renderScale : 1);
         return selectedObject;
     }
 }
