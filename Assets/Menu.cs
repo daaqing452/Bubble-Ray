@@ -5,49 +5,92 @@ using UnityEngine.UI;
 
 public class Menu : MonoBehaviour
 {
-    GameObject button_BubbleRay_BubbleVisible;
+    Color COLOR_TRIGGER = new Color(0.8f, 1, 0.8f);
+    Color COLOR_NONE = new Color(1, 1, 1);
+
+    GameObject text_Info;
+
+    GameObject button_Cue_Ray;
+    GameObject button_Cue_FishPole;
+    GameObject button_Cue_Bubble;
+
     GameObject button_BubbleRay_HandCentered;
-    GameObject button_BubbleRay_PlaneView;
-
-    // Use this for initialization
+    GameObject button_BubbleRay_DynamicPlane;
+    GameObject button_BubbleRay_DynamicTangent;
+    GameObject[] subbutton_BubbleRay;
+    
     void Start() {
-        button_BubbleRay_BubbleVisible = GameObject.Find("Menu/Button Bubble Visible");
-        button_BubbleRay_HandCentered = GameObject.Find("Menu/Bubble Ray/Button Hand Centered");
-        button_BubbleRay_PlaneView = GameObject.Find("Menu/Bubble Ray/Button Plane View");
-    }
+        text_Info = GameObject.Find("Menu/Info");
+        button_Cue_Ray = GameObject.Find("Menu/Cue/Button Ray");
+        button_Cue_FishPole = GameObject.Find("Menu/Cue/Button Fish Pole");
+        button_Cue_Bubble = GameObject.Find("Menu/Cue/Button Bubble");
 
-    // Update is called once per frame
+        button_BubbleRay_HandCentered = GameObject.Find("Menu/Bubble Ray/Button Hand Centered");
+        button_BubbleRay_DynamicPlane = GameObject.Find("Menu/Bubble Ray/Button Dynamic Plane");
+        button_BubbleRay_DynamicTangent = GameObject.Find("Menu/Bubble Ray/Button Dynamic Tangent");
+        subbutton_BubbleRay = GameObject.FindGameObjectsWithTag("subbutton bubble ray");
+
+        OnClick_BubbleRay_HandCentered();
+    }
+    
     void Update() {
     }
-
-    void ClearButtonVisibility() {
-        button_BubbleRay_HandCentered.SetActive(false);
-        button_BubbleRay_PlaneView.SetActive(false);
+    
+    void SetButtonColor(GameObject g, Color c) {
+        g.GetComponent<Image>().color = c;
     }
-
-    public void OnClick_BubbleRay() {
-        ClearButtonVisibility();
-        button_BubbleRay_HandCentered.SetActive(true);
-        button_BubbleRay_PlaneView.SetActive(true);
-    }
-
-    public void OnClick_BubbleRay_BubbleVisible() {
-        bool visible = Play.bubbleVisible;
-        Text text = button_BubbleRay_BubbleVisible.transform.GetChild(0).GetComponent<Text>();
-        if (visible == true) {
-            Play.bubbleVisible = false;
-            text.text = "Bubble Visible";
-        } else {
-            Play.bubbleVisible = true;
-            text.text = "Bubble Invisible";
+    void ClearTriggeredButton(GameObject[] group) {
+        foreach (GameObject g in group) {
+            SetButtonColor(g, COLOR_NONE);
         }
     }
 
     public void OnClick_BubbleRay_HandCentered() {
-        Play.bubbleRay_Method = "hand centered";
+        BubbleRay.method = "hand centered";
+        ClearTriggeredButton(subbutton_BubbleRay);
+        SetButtonColor(button_BubbleRay_HandCentered, COLOR_TRIGGER);
+        text_Info.GetComponent<Text>().text = "Bubble Ray - Hand Centered";
+    }
+    public void OnClick_BubbleRay_DynamicPlane() {
+        BubbleRay.method = "dynamic plane";
+        ClearTriggeredButton(subbutton_BubbleRay);
+        SetButtonColor(button_BubbleRay_DynamicPlane, COLOR_TRIGGER);
+        text_Info.GetComponent<Text>().text = "Bubble Ray - Plane View";
+    }
+    public void OnClick_BubbleRay_DynamicTangent() {
+        BubbleRay.method = "dynamic tangent";
+        ClearTriggeredButton(subbutton_BubbleRay);
+        SetButtonColor(button_BubbleRay_DynamicTangent, COLOR_TRIGGER);
+        text_Info.GetComponent<Text>().text = "Bubble Ray - Sphere View";
     }
 
-    public void OnClick_BubbleRay_PlaneView() {
-        Play.bubbleRay_Method = "plane view";
+    public void OnClick_Cue_Ray() {
+        if (Play.visibilityRay) {
+            Play.visibilityRay = false;
+            SetButtonColor(button_Cue_Ray, COLOR_NONE);
+        } else {
+            Play.visibilityRay = true;
+            Debug.Log("enter");
+            SetButtonColor(button_Cue_Ray, COLOR_TRIGGER);
+        }
+    }
+    public void OnClick_Cue_FishPole() {
+        if (Play.visibilityFishPole) {
+            Play.visibilityFishPole = false;
+            SetButtonColor(button_Cue_FishPole, COLOR_NONE);
+        } else {
+            Play.visibilityFishPole = true;
+            SetButtonColor(button_Cue_FishPole, COLOR_TRIGGER);
+        }
+    }
+    public void OnClick_Cue_Bubble() {
+        Debug.Log(BubbleRay.visibilityBubble);
+        if (BubbleRay.visibilityBubble) {
+            BubbleRay.visibilityBubble = false;
+            SetButtonColor(button_Cue_Bubble, COLOR_NONE);
+        } else {
+            BubbleRay.visibilityBubble = true;
+            SetButtonColor(button_Cue_Bubble, COLOR_TRIGGER);
+        }
     }
 }
