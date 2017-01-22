@@ -231,30 +231,6 @@ class BubbleRay {
                 renderRotation = play.cameraHead.transform.rotation;
                 break;
 
-            case "angular":
-                foreach (GameObject g in play.playProps) {
-                    Vector3 q = g.transform.position;
-                    Vector3 u = q - e;
-                    if (Mathf.Abs(v.x * u.x + v.y * u.y + v.z * u.z) < EPS) continue;
-                    if (Mathf.Abs(u.magnitude) < EPS) continue;
-                    float t = -((p.x - q.x) * u.x + (p.y - q.y) * u.y + (p.z - q.z) * u.z) / (v.x * u.x + v.y * u.y + v.z * u.z);
-                    Vector3 i = p + v * t;
-                    float d = (q - i).magnitude - g.transform.localScale.x / 2;
-                    float f = d / u.magnitude;
-                    if (f < minF) {
-                        renderPoint = i;
-                        range1 = range0;
-                        range0 = f;
-                        minF = f;
-                        selectedObject = g;
-                    }
-                    else {
-                        range1 = Mathf.Min(range1, d);
-                    }
-                }
-                renderRotation = play.cameraHead.transform.rotation;
-                break;
-
             case "fixed sphere":
                 float R = -1e20f;
                 foreach (GameObject g in play.playProps) {
@@ -281,6 +257,30 @@ class BubbleRay {
                         renderPoint = i;
                         range1 = range0;
                         range0 = d;
+                        minF = f;
+                        selectedObject = g;
+                    }
+                    else {
+                        range1 = Mathf.Min(range1, d);
+                    }
+                }
+                renderRotation = play.cameraHead.transform.rotation;
+                break;
+			
+            case "angular":
+                foreach (GameObject g in play.playProps) {
+                    Vector3 q = g.transform.position;
+                    Vector3 u = q - e;
+                    if (Mathf.Abs(v.x * u.x + v.y * u.y + v.z * u.z) < EPS) continue;
+                    if (Mathf.Abs(u.magnitude) < EPS) continue;
+                    float t = -((p.x - q.x) * u.x + (p.y - q.y) * u.y + (p.z - q.z) * u.z) / (v.x * u.x + v.y * u.y + v.z * u.z);
+                    Vector3 i = p + v * t;
+                    float d = (q - i).magnitude - g.transform.localScale.x / 2;
+                    float f = d / u.magnitude;
+                    if (f < minF) {
+                        renderPoint = i;
+                        range1 = range0;
+                        range0 = f;
                         minF = f;
                         selectedObject = g;
                     }
