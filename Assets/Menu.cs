@@ -116,7 +116,6 @@ public class Menu : MonoBehaviour
         }
     }
     public void OnClick_Cue_Bubble() {
-        Debug.Log(BubbleRay.visibilityBubble);
         if (BubbleRay.visibilityBubble) {
             BubbleRay.visibilityBubble = false;
             SetButtonColor(button_Cue_Bubble, COLOR_NONE);

@@ -1,11 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using HTC.UnityPlugin.PoseTracker;
+using HTC.UnityPlugin.Vive;
 
 public class Play : MonoBehaviour {
-
-    Color COLOR_NONE = new Color(1, 1, 1);
-
+    
     public static bool visibilityRay = false;
     public static bool visibilityFishPole = false;
 
@@ -19,6 +19,8 @@ public class Play : MonoBehaviour {
 
     GameObject selectedObject;
     BubbleRay bubbleRay;
+    
+    HandRole handRole;
 
     void Start () {
         playProps = GameObject.FindGameObjectsWithTag("play prop");
@@ -29,15 +31,27 @@ public class Play : MonoBehaviour {
         ray = GameObject.Find("Ray");
         ray.transform.SetParent(controller.transform);
         fishPole = GameObject.Find("Fish Pole").GetComponent<LineRenderer>();
+
         bubbleRay = new BubbleRay(this);
+
+        handRole = HandRole.RightHand;
     }
 	
 	void Update ()
     {
-        SelectObject(selectedObject, 0);
-        selectedObject = bubbleRay.Select();
-        SelectObject(selectedObject, 1);
+        if (ViveInput.GetPressDown(handRole, ControllerButton.FullTrigger)) {
+            Debug.Log("tri");
+            selectedObject.GetComponent<Renderer>().material.color = Color.green;
+        }
 
+        GameObject prevSelectedObject = selectedObject;
+        selectedObject = bubbleRay.Select();
+        //Debug.Log(selectedObject != prevSelectedObject);
+        if (selectedObject != prevSelectedObject) {
+            if (prevSelectedObject != null) SelectObject(prevSelectedObject, 0);
+            SelectObject(selectedObject, 1);
+        }
+        
         if (visibilityRay) {
             ray.SetActive(true);
         } else {
@@ -55,7 +69,7 @@ public class Play : MonoBehaviour {
     void SelectObject(GameObject g, int status) {
         if (g == null) return;
         if (status == 0) {
-            g.GetComponent<Renderer>().material.color = COLOR_NONE;
+            g.GetComponent<Renderer>().material.color = Color.white;
         } else {
             g.GetComponent<Renderer>().material = Resources.Load("Dark Blue") as Material;
         }
@@ -280,7 +294,7 @@ class BubbleRay {
                     if (f < minF) {
                         renderPoint = i;
                         range1 = range0;
-                        range0 = f;
+                        range0 = d;
                         minF = f;
                         selectedObject = g;
                     }
