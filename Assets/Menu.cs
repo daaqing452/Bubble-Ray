@@ -3,19 +3,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Menu : MonoBehaviour
-{
+public class Menu : MonoBehaviour {
     //  color
     Color COLOR_TRIGGER = new Color(0.8f, 1, 0.8f);
     Color COLOR_NONE = new Color(1, 1, 1);
     
     //  text info
     GameObject text_Info;
-
-    //  feedback
-    GameObject button_Cue_Ray;
-    GameObject button_Cue_FishPole;
-    GameObject button_Cue_Bubble;
 
     //  bubble ray type
     GameObject[] subbutton_BubbleRay;
@@ -26,13 +20,18 @@ public class Menu : MonoBehaviour
     GameObject button_BubbleRay_Angular;
     GameObject button_BubbleRay_DepthSphere;
     GameObject button_BubbleRay_FixedSphere;
+    
+    //  feedback
+    GameObject button_Cue_Ray;
+    GameObject button_Cue_FishPole;
+    GameObject button_Cue_Bubble;
+
+    //  main
+    GameObject button_Start;
 
     void Start() {
         //  static gameobject
         text_Info = GameObject.Find("Menu/Info");
-        button_Cue_Ray = GameObject.Find("Menu/Cue/Button Ray");
-        button_Cue_FishPole = GameObject.Find("Menu/Cue/Button Fish Pole");
-        button_Cue_Bubble = GameObject.Find("Menu/Cue/Button Bubble");
         button_BubbleRay_HandCentered = GameObject.Find("Menu/Bubble Ray/Button Hand Centered");
         button_BubbleRay_DepthPlane = GameObject.Find("Menu/Bubble Ray/Button Depth Plane");
         button_BubbleRay_FixedPlane = GameObject.Find("Menu/Bubble Ray/Button Fixed Plane");
@@ -41,9 +40,14 @@ public class Menu : MonoBehaviour
         button_BubbleRay_DepthSphere = GameObject.Find("Menu/Bubble Ray/Button Depth Sphere");
         button_BubbleRay_FixedSphere = GameObject.Find("Menu/Bubble Ray/Button Fixed Sphere");
         subbutton_BubbleRay = GameObject.FindGameObjectsWithTag("subbutton bubble ray");
+        button_Cue_Ray = GameObject.Find("Menu/Cue/Button Ray");
+        button_Cue_FishPole = GameObject.Find("Menu/Cue/Button Fish Pole");
+        button_Cue_Bubble = GameObject.Find("Menu/Cue/Button Bubble");
+        button_Start = GameObject.Find("Menu/Start");
 
         //  initiate
         OnClick_BubbleRay_HandCentered();
+        OnClick_Cue_Ray();
     }
     
     void Update() {
@@ -111,11 +115,11 @@ public class Menu : MonoBehaviour
         }
     }
     public void OnClick_Cue_FishPole() {
-        if (Play.visibilityFishPole) {
-            Play.visibilityFishPole = false;
+        if (BubbleRay.visibilityFishPole) {
+            BubbleRay.visibilityFishPole = false;
             SetButtonColor(button_Cue_FishPole, COLOR_NONE);
         } else {
-            Play.visibilityFishPole = true;
+            BubbleRay.visibilityFishPole = true;
             SetButtonColor(button_Cue_FishPole, COLOR_TRIGGER);
         }
     }
@@ -127,5 +131,9 @@ public class Menu : MonoBehaviour
             BubbleRay.visibilityBubble = true;
             SetButtonColor(button_Cue_Bubble, COLOR_TRIGGER);
         }
+    }
+
+    public void OnClick_Start() {
+        Experiment.started = true;
     }
 }

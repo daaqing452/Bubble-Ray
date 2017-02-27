@@ -8,9 +8,8 @@ using HTC.UnityPlugin.Vive;
 using System;
 
 public class Play : MonoBehaviour {
-    //  external configuration
+    //  menu configuration
     public static bool visibilityRay = false;
-    public static bool visibilityFishPole = false;
 
     //  constant
     public const string TAG_PLAY_PROP = "play prop";
@@ -22,8 +21,8 @@ public class Play : MonoBehaviour {
     GameObject controllerLeft;
     GameObject controllerRight;
     GameObject ray;
-    LineRenderer fishPole;
     HandRole handRole;
+    public GameObject signExperimentCompleted;
 
     //  method
     GameObject selectedObject;
@@ -31,7 +30,10 @@ public class Play : MonoBehaviour {
     Technique technique;
     BubbleRay bubbleRay;
 
-    void Start () {
+    //  other
+    Vector3 prevControllerPosition = Vector3.zero;
+
+    void Start() {
         //  static gameobject
         cameraHead = GameObject.Find("VROrigin/[CameraRig]/Camera (eye)");
         controllerLeft = GameObject.Find("VROrigin/[CameraRig]/Controller (left)");
@@ -39,29 +41,28 @@ public class Play : MonoBehaviour {
         controller = controllerRight;
         ray = GameObject.Find("Ray");
         ray.transform.SetParent(controller.transform);
-        fishPole = GameObject.Find("Fish Pole").GetComponent<LineRenderer>();
         handRole = HandRole.RightHand;
+        signExperimentCompleted = GameObject.Find("Experiment Completed");
 
         //  initiate methods
         bubbleRay = new BubbleRay(this);
         technique = bubbleRay;
-        experiment = new Experiment(this);
+        experiment = new Experiment(this, "example.conf");
     }
     
-	void Update () {
-        //  operation
-        if (ViveInput.GetPressDown(handRole, ControllerButton.FullTrigger)) {
-            if (selectedObject == experiment.targetObject) {
-                Debug.Log("correct");
-                experiment.Next();
-            } else {
-                Debug.Log("wrong " + selectedObject.name + " " + experiment.targetObject.name);
-            }
-        }
-        
+	void Update() {
         //  find current selected object
         selectedObject = technique.Select();
-        
+
+        //  record
+        experiment.AccumulateMovement(controller.transform.position - prevControllerPosition);
+        prevControllerPosition = controller.transform.position;
+
+        //  user event
+        if (ViveInput.GetPress(handRole, ControllerButton.FullTrigger)) {
+            experiment.Select(selectedObject);
+        }
+
         //  color
         foreach (GameObject g in playProps) {
             if (g == selectedObject) {
@@ -73,28 +74,14 @@ public class Play : MonoBehaviour {
             }
         }
         
-        //  set feedback
+        //  feedback
         ray.SetActive(visibilityRay);
-        if (visibilityFishPole) {
-            Vector3 v = QuaternionToVector(controller.transform.rotation);
-            DrawTwoOrderBezierCurve(controller.transform.position, selectedObject.transform.position, v);
-        } else {
-            fishPole.numPositions = 0;
-        }
     }
+}
+
+abstract class Technique {
+    public abstract GameObject Select();
     
-    void DrawTwoOrderBezierCurve(Vector3 p, Vector3 q, Vector3 v) {
-        float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
-        Vector3 r = p + v * t * 0.8f;
-        List<Vector3> bs = new List<Vector3>();
-        for (int i = 0; i <= 100; i++) {
-            float j = i / 100.0f;
-            Vector3 b = (1 - j) * (1 - j) * p + 2 * j * (1 - j) * r + j * j * q;
-            bs.Add(b);
-        }
-        fishPole.SetPositions(bs.ToArray());
-        fishPole.numPositions = bs.Count;
-    }
     public static Vector3 QuaternionToVector(Quaternion q) {
         Vector3 r = q.eulerAngles / 180.0f * Mathf.Acos(-1);
         float dx = Mathf.Cos(r.x) * Mathf.Sin(r.y);
@@ -104,14 +91,11 @@ public class Play : MonoBehaviour {
     }
 }
 
-abstract class Technique {
-    public abstract GameObject Select();
-}
-
 class BubbleRay : Technique {
-    //  external configuration
+    //  menu configuration
     public static string method = "";
     public static bool visibilityBubble = false;
+    public static bool visibilityFishPole = false;
 
     //  constant
     public float EPS = 1e-5f;
@@ -123,16 +107,18 @@ class BubbleRay : Technique {
     //  work 
     Play play;
     GameObject bubble;
+    LineRenderer fishPole;
 
     public BubbleRay(Play play) {
         this.play = play;
         bubble = GameObject.Find("Bubble Ray/Bubble");
+        fishPole = GameObject.Find("Fish Pole").GetComponent<LineRenderer>();
     }
 
     public override GameObject Select() {
         //  source geomatric data
         Vector3 p = play.controller.transform.position;
-        Vector3 v = Play.QuaternionToVector(play.controller.transform.rotation);
+        Vector3 v = QuaternionToVector(play.controller.transform.rotation);
         Vector3 e = play.cameraHead.transform.position;
 
         //  initiate
@@ -214,7 +200,7 @@ class BubbleRay : Technique {
             case "centripetal plane":
                 foreach (GameObject g in play.playProps) {
                     Vector3 q = g.transform.position;
-                    Vector3 n = Play.QuaternionToVector(play.cameraHead.transform.rotation);
+                    Vector3 n = QuaternionToVector(play.cameraHead.transform.rotation);
                     if (Mathf.Abs(v.x * n.x + v.y * n.y + v.z * n.z) < EPS) continue;
                     float t = -((p.x - q.x) * n.x + (p.y - q.y) * n.y + (p.z - q.z) * n.z) / (v.x * n.x + v.y * n.y + v.z * n.z);
                     Vector3 i = p + v * t;
@@ -296,7 +282,7 @@ class BubbleRay : Technique {
                 }
                 renderRotation = play.cameraHead.transform.rotation;
                 break;
-			
+
             case "angular":
                 foreach (GameObject g in play.playProps) {
                     Vector3 q = g.transform.position;
@@ -330,43 +316,75 @@ class BubbleRay : Technique {
         transformBubble.rotation = renderRotation;
         transformBubble.localScale = renderUnit * ((visibilityBubble) ? renderScale : 1);
 
+        //  draw fishpole
+        if (visibilityFishPole) {
+            DrawTwoOrderBezierCurve(play.controller.transform.position, selectedObject.transform.position, v);
+        }
+        else {
+            fishPole.positionCount = 0;
+        }
+        
         return selectedObject;
+    }
+
+    void DrawTwoOrderBezierCurve(Vector3 p, Vector3 q, Vector3 v) {
+        float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
+        Vector3 r = p + v * t * 0.8f;
+        List<Vector3> bs = new List<Vector3>();
+        for (int i = 0; i <= 100; i++) {
+            float j = i / 100.0f;
+            Vector3 b = (1 - j) * (1 - j) * p + 2 * j * (1 - j) * r + j * j * q;
+            bs.Add(b);
+        }
+        fishPole.SetPositions(bs.ToArray());
+        fishPole.positionCount = bs.Count;
     }
 }
 
 class Experiment {
-    //  object
+    //  menu configuration
+    public static bool started = false;
+
+    //  main
+    string fileName;
     Play play;
     public GameObject targetObject;
-    GameObject prevTargetObject;
+    public bool completed = false;
+    List<string> record = new List<string>();
 
-    public Experiment(Play play) {
+    //  measures
+    int trials = 0;
+    int trialsMax;
+    int trialsError = 0;
+    float movementTotal = 0;
+
+    public Experiment(Play play, string fileName) {
+        this.fileName = fileName;
         this.play = play;
-        LoadPlayGround("Configuration/sample.conf");
+        Load("Configure/" + fileName);
         Next();
     }
 
-    public void Next() {
-        prevTargetObject = targetObject;
-        while (true) {
-            int x = new System.Random().Next() % play.playProps.Length;
-            targetObject = play.playProps[x];
-            if (targetObject != prevTargetObject) break;
-        }
-    }
-    void LoadPlayGround(string fileName) {
-        play.playProps = GameObject.FindGameObjectsWithTag(Play.TAG_PLAY_PROP);
-        foreach (GameObject g in play.playProps) UnityEngine.Object.Destroy(g);
-        StreamReader reader = new StreamReader(new FileStream(fileName, FileMode.Open));
+    void Load(string fileName) {
+        //  clean up
+        play.signExperimentCompleted.SetActive(false);
+        GameObject[] destroyObjects = GameObject.FindGameObjectsWithTag(Play.TAG_PLAY_PROP);
+        foreach (GameObject g in destroyObjects) UnityEngine.Object.Destroy(g);
+
+        //  read
         int lineNo = -1;
         GameObject newGameObject = null;
+        StreamReader reader = new StreamReader(new FileStream(fileName, FileMode.Open));
         while (true) {
             lineNo++;
             string line = reader.ReadLine();
             if (line == null) break;
             string[] arr = line.Split(' ');
             switch (arr[0]) {
-                case "create":
+                case "trials":
+                    trialsMax = int.Parse(arr[1]);
+                    break;
+                case "object":
                     PrimitiveType primitiveType = 0;
                     if (arr[1] == "sphere") primitiveType = PrimitiveType.Sphere;
                     newGameObject = GameObject.CreatePrimitive(primitiveType);
@@ -398,6 +416,51 @@ class Experiment {
             }
         }
         reader.Close();
+
+        //  reload play props
         play.playProps = GameObject.FindGameObjectsWithTag(Play.TAG_PLAY_PROP);
+    }
+    public void Start() {
+
+    }
+    void Next() {
+        GameObject prevTargetObject = targetObject;
+        while (true) {
+            int x = new System.Random().Next() % play.playProps.Length;
+            targetObject = play.playProps[x];
+            if (targetObject != prevTargetObject) break;
+        }
+    }
+    void Complete() {
+        play.signExperimentCompleted.SetActive(true);
+        completed = true;
+    }
+    public void Select(GameObject selectedObject) {
+        if (!started) {
+            if (selectedObject == targetObject) Next();
+            return;
+        }
+        if (selectedObject == targetObject) {
+            trials += 1;
+            if (trials > trialsMax) {
+                Complete();
+                return;
+            }
+            Record(1);
+            Next();
+        } else {
+            trialsError++;
+            Record(0);
+        }
+    }
+    public void AccumulateMovement(Vector3 movement) {
+        movementTotal += movement.magnitude;
+    }
+    void Record(int success) {
+        string r = "select ";
+        r += targetObject.name + " ";
+        r += success + " ";
+        r += movementTotal + " ";
+        r += new DateTime().ToFileTime();
     }
 }
