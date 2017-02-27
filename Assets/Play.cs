@@ -1,14 +1,21 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using UnityEditor;
 using UnityEngine;
 using HTC.UnityPlugin.PoseTracker;
 using HTC.UnityPlugin.Vive;
+using System;
 
 public class Play : MonoBehaviour {
-    
+    //  external configuration
     public static bool visibilityRay = false;
     public static bool visibilityFishPole = false;
 
+    //  constant
+    public const string TAG_PLAY_PROP = "play prop";
+
+    //  static gameobject
     public GameObject[] playProps;
     public GameObject cameraHead;
     public GameObject controller;
@@ -16,14 +23,16 @@ public class Play : MonoBehaviour {
     GameObject controllerRight;
     GameObject ray;
     LineRenderer fishPole;
-
-    GameObject selectedObject;
-    BubbleRay bubbleRay;
-    
     HandRole handRole;
 
+    //  method
+    GameObject selectedObject;
+    Experiment experiment;
+    Technique technique;
+    BubbleRay bubbleRay;
+
     void Start () {
-        playProps = GameObject.FindGameObjectsWithTag("play prop");
+        //  static gameobject
         cameraHead = GameObject.Find("VROrigin/[CameraRig]/Camera (eye)");
         controllerLeft = GameObject.Find("VROrigin/[CameraRig]/Controller (left)");
         controllerRight = GameObject.Find("VROrigin/[CameraRig]/Controller (right)");
@@ -31,33 +40,41 @@ public class Play : MonoBehaviour {
         ray = GameObject.Find("Ray");
         ray.transform.SetParent(controller.transform);
         fishPole = GameObject.Find("Fish Pole").GetComponent<LineRenderer>();
-
-        bubbleRay = new BubbleRay(this);
-
         handRole = HandRole.RightHand;
-    }
-	
-	void Update ()
-    {
-        if (ViveInput.GetPressDown(handRole, ControllerButton.FullTrigger)) {
-            Debug.Log("tri");
-            selectedObject.GetComponent<Renderer>().material.color = Color.green;
-        }
 
-        GameObject prevSelectedObject = selectedObject;
-        selectedObject = bubbleRay.Select();
-        //Debug.Log(selectedObject != prevSelectedObject);
-        if (selectedObject != prevSelectedObject) {
-            if (prevSelectedObject != null) SelectObject(prevSelectedObject, 0);
-            SelectObject(selectedObject, 1);
+        //  initiate methods
+        bubbleRay = new BubbleRay(this);
+        technique = bubbleRay;
+        experiment = new Experiment(this);
+    }
+    
+	void Update () {
+        //  operation
+        if (ViveInput.GetPressDown(handRole, ControllerButton.FullTrigger)) {
+            if (selectedObject == experiment.targetObject) {
+                Debug.Log("correct");
+                experiment.Next();
+            } else {
+                Debug.Log("wrong " + selectedObject.name + " " + experiment.targetObject.name);
+            }
         }
         
-        if (visibilityRay) {
-            ray.SetActive(true);
-        } else {
-            ray.SetActive(false);
+        //  find current selected object
+        selectedObject = technique.Select();
+        
+        //  color
+        foreach (GameObject g in playProps) {
+            if (g == selectedObject) {
+                g.GetComponent<Renderer>().material = Resources.Load("Dark Green") as Material;
+            } else if (g == experiment.targetObject) {
+                g.GetComponent<Renderer>().material = Resources.Load("Dark Blue") as Material;
+            } else {
+                g.GetComponent<Renderer>().material.color = Color.white;
+            }
         }
-
+        
+        //  set feedback
+        ray.SetActive(visibilityRay);
         if (visibilityFishPole) {
             Vector3 v = QuaternionToVector(controller.transform.rotation);
             DrawTwoOrderBezierCurve(controller.transform.position, selectedObject.transform.position, v);
@@ -66,16 +83,7 @@ public class Play : MonoBehaviour {
         }
     }
     
-    void SelectObject(GameObject g, int status) {
-        if (g == null) return;
-        if (status == 0) {
-            g.GetComponent<Renderer>().material.color = Color.white;
-        } else {
-            g.GetComponent<Renderer>().material = Resources.Load("Dark Blue") as Material;
-        }
-    }
-    void DrawTwoOrderBezierCurve(Vector3 p, Vector3 q, Vector3 v)
-    {
+    void DrawTwoOrderBezierCurve(Vector3 p, Vector3 q, Vector3 v) {
         float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
         Vector3 r = p + v * t * 0.8f;
         List<Vector3> bs = new List<Vector3>();
@@ -87,8 +95,7 @@ public class Play : MonoBehaviour {
         fishPole.SetPositions(bs.ToArray());
         fishPole.numPositions = bs.Count;
     }
-    public static Vector3 QuaternionToVector(Quaternion q)
-    {
+    public static Vector3 QuaternionToVector(Quaternion q) {
         Vector3 r = q.eulerAngles / 180.0f * Mathf.Acos(-1);
         float dx = Mathf.Cos(r.x) * Mathf.Sin(r.y);
         float dy = -Mathf.Sin(r.x);
@@ -97,16 +104,23 @@ public class Play : MonoBehaviour {
     }
 }
 
-class BubbleRay {
+abstract class Technique {
+    public abstract GameObject Select();
+}
+
+class BubbleRay : Technique {
+    //  external configuration
     public static string method = "";
     public static bool visibilityBubble = false;
 
+    //  constant
     public float EPS = 1e-5f;
     public Vector3 POINT_HIDE = new Vector3(0, 0, -5);
     public Quaternion QUETERNION_NULL = new Quaternion(1, 0, 0, 0);
     public Vector3 UNIT_BALL = new Vector3(1, 1, 1);
     public Vector3 UNIT_CIRCLE = new Vector3(1, 1, 0.01f);
 
+    //  work 
     Play play;
     GameObject bubble;
 
@@ -115,11 +129,13 @@ class BubbleRay {
         bubble = GameObject.Find("Bubble Ray/Bubble");
     }
 
-    public GameObject Select() {
+    public override GameObject Select() {
+        //  source geomatric data
         Vector3 p = play.controller.transform.position;
         Vector3 v = Play.QuaternionToVector(play.controller.transform.rotation);
         Vector3 e = play.cameraHead.transform.position;
 
+        //  initiate
         GameObject selectedObject = null;
         Vector3 renderPoint = POINT_HIDE;
         Quaternion renderRotation = QUETERNION_NULL;
@@ -305,12 +321,83 @@ class BubbleRay {
                 renderRotation = play.cameraHead.transform.rotation;
                 break;
         }
+
+        //  draw bubble
         float renderScale = range0 * 2;
         //float renderScale = Mathf.Min(range0 + selectedObject.transform.localScale.x, range1) * 2;
         Transform transformBubble = bubble.transform;
         transformBubble.position = (visibilityBubble) ? renderPoint : POINT_HIDE;
         transformBubble.rotation = renderRotation;
         transformBubble.localScale = renderUnit * ((visibilityBubble) ? renderScale : 1);
+
         return selectedObject;
+    }
+}
+
+class Experiment {
+    //  object
+    Play play;
+    public GameObject targetObject;
+    GameObject prevTargetObject;
+
+    public Experiment(Play play) {
+        this.play = play;
+        LoadPlayGround("Configuration/sample.conf");
+        Next();
+    }
+
+    public void Next() {
+        prevTargetObject = targetObject;
+        while (true) {
+            int x = new System.Random().Next() % play.playProps.Length;
+            targetObject = play.playProps[x];
+            if (targetObject != prevTargetObject) break;
+        }
+    }
+    void LoadPlayGround(string fileName) {
+        play.playProps = GameObject.FindGameObjectsWithTag(Play.TAG_PLAY_PROP);
+        foreach (GameObject g in play.playProps) UnityEngine.Object.Destroy(g);
+        StreamReader reader = new StreamReader(new FileStream(fileName, FileMode.Open));
+        int lineNo = -1;
+        GameObject newGameObject = null;
+        while (true) {
+            lineNo++;
+            string line = reader.ReadLine();
+            if (line == null) break;
+            string[] arr = line.Split(' ');
+            switch (arr[0]) {
+                case "create":
+                    PrimitiveType primitiveType = 0;
+                    if (arr[1] == "sphere") primitiveType = PrimitiveType.Sphere;
+                    newGameObject = GameObject.CreatePrimitive(primitiveType);
+                    newGameObject.transform.parent = GameObject.Find("Playground").transform;
+                    newGameObject.tag = Play.TAG_PLAY_PROP;
+                    break;
+                case "name":
+                    newGameObject.name = line.Substring(5);
+                    break;
+                case "position":
+                    float px = float.Parse(arr[1]), py = float.Parse(arr[2]), pz = float.Parse(arr[3]);
+                    newGameObject.transform.position = new Vector3(px, py, pz);
+                    break;
+                case "rotation":
+                    float rx = float.Parse(arr[1]), ry = float.Parse(arr[2]), rz = float.Parse(arr[3]);
+                    newGameObject.transform.rotation = new Quaternion(rx, ry, rz, 1);
+                    break;
+                case "scale":
+                    float sx = float.Parse(arr[1]), sy = float.Parse(arr[2]), sz = float.Parse(arr[3]);
+                    newGameObject.transform.localScale = new Vector3(sx, sy, sz);
+                    break;
+                case "color":
+                    float cr = float.Parse(arr[1]), cg = float.Parse(arr[2]), cb = float.Parse(arr[3]);
+                    newGameObject.GetComponent<Renderer>().material.color = new Color(cr, cg, cb);
+                    break;
+                case "end":
+                    newGameObject = null;
+                    break;
+            }
+        }
+        reader.Close();
+        play.playProps = GameObject.FindGameObjectsWithTag(Play.TAG_PLAY_PROP);
     }
 }
