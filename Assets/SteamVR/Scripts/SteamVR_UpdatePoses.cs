@@ -14,7 +14,7 @@ public class SteamVR_UpdatePoses : MonoBehaviour
 	{
 		var camera = GetComponent<Camera>();
 		camera.stereoTargetEye = StereoTargetEyeMask.None;
-		camera.clearFlags = CameraClearFlags.Nothing;
+		//camera.clearFlags = CameraClearFlags.Nothing;
 		camera.useOcclusionCulling = false;
 		camera.cullingMask = 0;
 		camera.depth = -9999;

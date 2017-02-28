@@ -1,0 +1,3 @@
+start 17:27:15.786339
+select sphere(7) True 0.4021527 17:27:18.053372
+select sphere(3) True 0.5062928 17:27:19.069265

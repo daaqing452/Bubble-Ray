@@ -1,12 +1,13 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Timers;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using HTC.UnityPlugin.PoseTracker;
 using HTC.UnityPlugin.Vive;
-using System;
 
 public class Play : MonoBehaviour {
     //  menu configuration
@@ -23,7 +24,8 @@ public class Play : MonoBehaviour {
     GameObject controllerRight;
     GameObject ray;
     HandRole handRole;
-    public GameObject signExperimentCompleted;
+    GameObject signExperimentCompleted;
+    GameObject signExperimentStart;
 
     //  method
     GameObject selectedObject;
@@ -41,6 +43,7 @@ public class Play : MonoBehaviour {
         ray.transform.SetParent(controller.transform);
         handRole = HandRole.RightHand;
         signExperimentCompleted = GameObject.Find("Experiment Completed");
+        signExperimentStart = GameObject.Find("Experiment Start");
 
         //  initiate methods
         bubbleRay = new BubbleRay(this);
@@ -55,8 +58,12 @@ public class Play : MonoBehaviour {
         //  accumulate movement
         experiment.ControllerMove(controller.transform.position);
 
+        //  show sign
+        signExperimentStart.SetActive(experiment.startSignal);
+        signExperimentCompleted.SetActive(experiment.completed);
+
         //  user event
-        if (ViveInput.GetPress(handRole, ControllerButton.FullTrigger)) {
+        if (ViveInput.GetPressDown(handRole, ControllerButton.FullTrigger)) {
             experiment.Select(selectedObject);
         }
 
@@ -78,11 +85,17 @@ public class Play : MonoBehaviour {
     public void OnClick_Start() {
         experiment.Start();
     }
+
+    public string SettingString() {
+        return "username" + "-" + experiment.taskName + "-" + technique.GetMethod() + "-" + DateTime.Now.ToString("yyyy.MM.dd.HH.mm.ss");
+    }
 }
 
-abstract class Technique {
-    public abstract GameObject Select();
-    
+class Technique {
+    public virtual GameObject Select() { return new GameObject(); }
+
+    public virtual string GetMethod() { return "null"; }
+
     public static Vector3 QuaternionToVector(Quaternion q) {
         Vector3 r = q.eulerAngles / 180.0f * Mathf.Acos(-1);
         float dx = Mathf.Cos(r.x) * Mathf.Sin(r.y);
@@ -328,6 +341,10 @@ class BubbleRay : Technique {
         return selectedObject;
     }
 
+    public override string GetMethod() {
+        return method;
+    }
+
     void DrawTwoOrderBezierCurve(Vector3 p, Vector3 q, Vector3 v) {
         float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
         Vector3 r = p + v * t * 0.8f;
@@ -346,7 +363,8 @@ class Experiment {
     //  main
     public GameObject targetObject;
     public bool completed = false;
-    string fileName;
+    public bool startSignal = false;
+    public string taskName;
     Play play;
     bool started = false;
     List<string> record = new List<string>();
@@ -354,23 +372,29 @@ class Experiment {
     //  measures
     int trials = 0;
     int trialsMax;
-    int trialsError = 0;
     float movementTotal = 0;
 
     Vector3 prevPosition = Vector3.zero;
 
-    public Experiment(Play play, string fileName) {
-        this.fileName = fileName;
+    public Experiment(Play play, string taskName) {
+        this.taskName = taskName.Substring(0, taskName.Length - 5);
         this.play = play;
-        Load("Configure/" + fileName);
+        Load("Configure/" + taskName);
         Next();
     }
 
     public void Start() {
         started = true;
-        record.Add("start " + new DateTime().ToFileTime());
+        record.Add("start " + TimeString());
+        //  start signal
+        startSignal = true;
+        Timer timer = new Timer(1000);
+        timer.Elapsed += new ElapsedEventHandler(StartSignalTimeOut);
+        timer.AutoReset = false;
+        timer.Enabled = true;
     }
     public void Select(GameObject selectedObject) {
+        if (completed) return;
         if (!started) {
             if (selectedObject == targetObject) Next();
             return;
@@ -378,13 +402,10 @@ class Experiment {
         bool correct = (selectedObject == targetObject);
         if (correct) {
             trials += 1;
-            if (trials > trialsMax) { Complete(); return; }
             Next();
         }
-        else {
-            trialsError++;
-        }
-        record.Add("select " + targetObject.name + " " + correct + " " + movementTotal + " " + new DateTime().ToFileTime());
+        record.Add("select " + targetObject.name + " " + correct + " " + movementTotal + " " + TimeString());
+        if (trials >= trialsMax) Complete();
     }
     public void ControllerMove(Vector3 nowPosition) {
         if (started) {
@@ -394,10 +415,9 @@ class Experiment {
     }
     void Load(string fileName) {
         //  clean up
-        play.signExperimentCompleted.SetActive(false);
+        completed = false;
         GameObject[] destroyObjects = GameObject.FindGameObjectsWithTag(Play.TAG_PLAY_PROP);
         foreach (GameObject g in destroyObjects) UnityEngine.Object.Destroy(g);
-        record.Add("task " + fileName);
 
         //  read
         int lineNo = -1;
@@ -458,6 +478,14 @@ class Experiment {
     }
     void Complete() {
         completed = true;
-        play.signExperimentCompleted.SetActive(true);
+        StreamWriter writer = new StreamWriter(new FileStream("Log/" + play.SettingString() + ".txt", FileMode.OpenOrCreate));
+        foreach (string r in record) writer.WriteLine(r);
+        writer.Close();
+    }
+    void StartSignalTimeOut(object source, ElapsedEventArgs args) {
+        startSignal = false;
+    }
+    public static string TimeString() {
+        return DateTime.Now.ToString("HH:mm:ss.ffffff");
     }
 }
