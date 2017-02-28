@@ -26,9 +26,6 @@ public class Menu : MonoBehaviour {
     GameObject button_Cue_FishPole;
     GameObject button_Cue_Bubble;
 
-    //  main
-    GameObject button_Start;
-
     void Start() {
         //  static gameobject
         text_Info = GameObject.Find("Menu/Info");
@@ -43,7 +40,6 @@ public class Menu : MonoBehaviour {
         button_Cue_Ray = GameObject.Find("Menu/Cue/Button Ray");
         button_Cue_FishPole = GameObject.Find("Menu/Cue/Button Fish Pole");
         button_Cue_Bubble = GameObject.Find("Menu/Cue/Button Bubble");
-        button_Start = GameObject.Find("Menu/Start");
 
         //  initiate
         OnClick_BubbleRay_HandCentered();

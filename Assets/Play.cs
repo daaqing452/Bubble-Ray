@@ -26,10 +26,11 @@ public class Play : MonoBehaviour {
     HandRole handRole;
     GameObject signExperimentCompleted;
     GameObject signExperimentStart;
+    Dropdown taskSelection;
 
     //  method
     GameObject selectedObject;
-    Experiment experiment;
+    Experiment experiment = null;
     Technique technique;
     BubbleRay bubbleRay;
     
@@ -44,27 +45,39 @@ public class Play : MonoBehaviour {
         handRole = HandRole.RightHand;
         signExperimentCompleted = GameObject.Find("Experiment Completed");
         signExperimentStart = GameObject.Find("Experiment Start");
+        taskSelection = GameObject.Find("Task Selection").GetComponent<Dropdown>();
+
+        //  load task
+        taskSelection.options.Clear();
+        string[] taskNameList = Directory.GetFiles("Task/", "*.conf");
+        foreach (string taskName in taskNameList) {
+            taskSelection.options.Add(new Dropdown.OptionData(taskName.Substring(5, taskName.Length - 10)));
+        }
+        taskSelection.captionText.text = taskSelection.options[0].text;
+        OnValueChange_TaskSelection();
 
         //  initiate methods
         bubbleRay = new BubbleRay(this);
         technique = bubbleRay;
-        experiment = new Experiment(this, "example.conf");
     }
     
 	void Update() {
         //  find current selected object
+        playProps = GameObject.FindGameObjectsWithTag(TAG_PLAY_PROP);
         selectedObject = technique.Select();
 
-        //  accumulate movement
-        experiment.ControllerMove(controller.transform.position);
-
-        //  show sign
-        signExperimentStart.SetActive(experiment.startSignal);
-        signExperimentCompleted.SetActive(experiment.completed);
+        //  accumulate movement, show sign
+        if (experiment != null) {
+            experiment.ControllerMove(controller.transform.position);
+            signExperimentStart.SetActive(experiment.startSignal);
+            signExperimentCompleted.SetActive(experiment.completed);
+        }
 
         //  user event
         if (ViveInput.GetPressDown(handRole, ControllerButton.FullTrigger)) {
-            experiment.Select(selectedObject);
+            if (experiment != null) {
+                experiment.Select(selectedObject);
+            }
         }
 
         //  color
@@ -81,13 +94,18 @@ public class Play : MonoBehaviour {
         //  feedback
         ray.SetActive(visibilityRay);
     }
-    
+
+    public string SettingString() {
+        return "username" + "-" + experiment.task + "-" + technique.GetMethod() + "-" + DateTime.Now.ToString("yyyy.MM.dd.HH.mm.ss");
+    }
+
     public void OnClick_Start() {
         experiment.Start();
     }
-
-    public string SettingString() {
-        return "username" + "-" + experiment.taskName + "-" + technique.GetMethod() + "-" + DateTime.Now.ToString("yyyy.MM.dd.HH.mm.ss");
+    public void OnValueChange_TaskSelection() {
+        int value = taskSelection.value;
+        string task = taskSelection.options[value].text;
+        experiment = new Experiment(this, task);
     }
 }
 
@@ -142,7 +160,7 @@ class BubbleRay : Technique {
         Vector3 renderUnit = UNIT_CIRCLE;
         float range0 = 1e20f;
         float range1 = 1e20f;
-
+        
         float minF = 1e20f;
         switch (method) {
             case "hand centered":
@@ -364,7 +382,7 @@ class Experiment {
     public GameObject targetObject;
     public bool completed = false;
     public bool startSignal = false;
-    public string taskName;
+    public string task;
     Play play;
     bool started = false;
     List<string> record = new List<string>();
@@ -376,10 +394,10 @@ class Experiment {
 
     Vector3 prevPosition = Vector3.zero;
 
-    public Experiment(Play play, string taskName) {
-        this.taskName = taskName.Substring(0, taskName.Length - 5);
+    public Experiment(Play play, string task) {
+        this.task = task;
         this.play = play;
-        Load("Configure/" + taskName);
+        Load("Task/" + task + ".conf");
         Next();
     }
 
@@ -464,7 +482,7 @@ class Experiment {
             }
         }
         reader.Close();
-
+        
         //  reload play props
         play.playProps = GameObject.FindGameObjectsWithTag(Play.TAG_PLAY_PROP);
     }
