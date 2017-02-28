@@ -68,6 +68,7 @@ public class Play : MonoBehaviour {
 
         //  accumulate movement, show sign
         if (experiment != null) {
+            //Debug.Log(experiment.targetObject.name);
             experiment.ControllerMove(controller.transform.position);
             signExperimentStart.SetActive(experiment.startSignal);
             signExperimentCompleted.SetActive(experiment.completed);
@@ -379,7 +380,7 @@ class BubbleRay : Technique {
 
 class Experiment {
     //  main
-    public GameObject targetObject;
+    public GameObject targetObject = null;
     public bool completed = false;
     public bool startSignal = false;
     public string task;
@@ -398,7 +399,6 @@ class Experiment {
         this.task = task;
         this.play = play;
         Load("Task/" + task + ".conf");
-        Next();
     }
 
     public void Start() {
@@ -477,6 +477,7 @@ class Experiment {
                     newGameObject.GetComponent<Renderer>().material.color = new Color(cr, cg, cb);
                     break;
                 case "end":
+                    if (targetObject == null) targetObject = newGameObject;
                     newGameObject = null;
                     break;
             }
