@@ -132,8 +132,4 @@ public class Menu : MonoBehaviour {
             SetButtonColor(button_Cue_Bubble, COLOR_TRIGGER);
         }
     }
-
-    public void OnClick_Start() {
-        Experiment.started = true;
-    }
 }

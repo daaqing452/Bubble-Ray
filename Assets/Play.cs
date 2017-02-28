@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 using HTC.UnityPlugin.PoseTracker;
 using HTC.UnityPlugin.Vive;
 using System;
@@ -29,10 +30,7 @@ public class Play : MonoBehaviour {
     Experiment experiment;
     Technique technique;
     BubbleRay bubbleRay;
-
-    //  other
-    Vector3 prevControllerPosition = Vector3.zero;
-
+    
     void Start() {
         //  static gameobject
         cameraHead = GameObject.Find("VROrigin/[CameraRig]/Camera (eye)");
@@ -54,9 +52,8 @@ public class Play : MonoBehaviour {
         //  find current selected object
         selectedObject = technique.Select();
 
-        //  record
-        experiment.AccumulateMovement(controller.transform.position - prevControllerPosition);
-        prevControllerPosition = controller.transform.position;
+        //  accumulate movement
+        experiment.ControllerMove(controller.transform.position);
 
         //  user event
         if (ViveInput.GetPress(handRole, ControllerButton.FullTrigger)) {
@@ -76,6 +73,10 @@ public class Play : MonoBehaviour {
         
         //  feedback
         ray.SetActive(visibilityRay);
+    }
+    
+    public void OnClick_Start() {
+        experiment.Start();
     }
 }
 
@@ -342,14 +343,12 @@ class BubbleRay : Technique {
 }
 
 class Experiment {
-    //  menu configuration
-    public static bool started = false;
-
     //  main
-    string fileName;
-    Play play;
     public GameObject targetObject;
     public bool completed = false;
+    string fileName;
+    Play play;
+    bool started = false;
     List<string> record = new List<string>();
 
     //  measures
@@ -358,6 +357,8 @@ class Experiment {
     int trialsError = 0;
     float movementTotal = 0;
 
+    Vector3 prevPosition = Vector3.zero;
+
     public Experiment(Play play, string fileName) {
         this.fileName = fileName;
         this.play = play;
@@ -365,11 +366,38 @@ class Experiment {
         Next();
     }
 
+    public void Start() {
+        started = true;
+        record.Add("start " + new DateTime().ToFileTime());
+    }
+    public void Select(GameObject selectedObject) {
+        if (!started) {
+            if (selectedObject == targetObject) Next();
+            return;
+        }
+        bool correct = (selectedObject == targetObject);
+        if (correct) {
+            trials += 1;
+            if (trials > trialsMax) { Complete(); return; }
+            Next();
+        }
+        else {
+            trialsError++;
+        }
+        record.Add("select " + targetObject.name + " " + correct + " " + movementTotal + " " + new DateTime().ToFileTime());
+    }
+    public void ControllerMove(Vector3 nowPosition) {
+        if (started) {
+            movementTotal += (nowPosition - prevPosition).magnitude;
+        }
+        prevPosition = nowPosition;
+    }
     void Load(string fileName) {
         //  clean up
         play.signExperimentCompleted.SetActive(false);
         GameObject[] destroyObjects = GameObject.FindGameObjectsWithTag(Play.TAG_PLAY_PROP);
         foreach (GameObject g in destroyObjects) UnityEngine.Object.Destroy(g);
+        record.Add("task " + fileName);
 
         //  read
         int lineNo = -1;
@@ -388,7 +416,7 @@ class Experiment {
                     PrimitiveType primitiveType = 0;
                     if (arr[1] == "sphere") primitiveType = PrimitiveType.Sphere;
                     newGameObject = GameObject.CreatePrimitive(primitiveType);
-                    newGameObject.transform.parent = GameObject.Find("Playground").transform;
+                    newGameObject.transform.parent = GameObject.Find("Play").transform;
                     newGameObject.tag = Play.TAG_PLAY_PROP;
                     break;
                 case "name":
@@ -420,9 +448,6 @@ class Experiment {
         //  reload play props
         play.playProps = GameObject.FindGameObjectsWithTag(Play.TAG_PLAY_PROP);
     }
-    public void Start() {
-
-    }
     void Next() {
         GameObject prevTargetObject = targetObject;
         while (true) {
@@ -432,35 +457,7 @@ class Experiment {
         }
     }
     void Complete() {
-        play.signExperimentCompleted.SetActive(true);
         completed = true;
-    }
-    public void Select(GameObject selectedObject) {
-        if (!started) {
-            if (selectedObject == targetObject) Next();
-            return;
-        }
-        if (selectedObject == targetObject) {
-            trials += 1;
-            if (trials > trialsMax) {
-                Complete();
-                return;
-            }
-            Record(1);
-            Next();
-        } else {
-            trialsError++;
-            Record(0);
-        }
-    }
-    public void AccumulateMovement(Vector3 movement) {
-        movementTotal += movement.magnitude;
-    }
-    void Record(int success) {
-        string r = "select ";
-        r += targetObject.name + " ";
-        r += success + " ";
-        r += movementTotal + " ";
-        r += new DateTime().ToFileTime();
+        play.signExperimentCompleted.SetActive(true);
     }
 }
