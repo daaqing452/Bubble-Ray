@@ -24,9 +24,15 @@ public class Play : MonoBehaviour {
     GameObject controllerRight;
     GameObject ray;
     HandRole handRole;
+
     GameObject signExperimentCompleted;
     GameObject signExperimentStart;
     Dropdown taskSelection;
+
+    AudioSource audioSelectCorrect;
+    AudioSource audioSelectWrong;
+    AudioSource audioStart;
+    public AudioSource audioComplete;
 
     //  method
     GameObject selectedObject;
@@ -43,9 +49,18 @@ public class Play : MonoBehaviour {
         ray = GameObject.Find("Ray");
         ray.transform.SetParent(controller.transform);
         handRole = HandRole.RightHand;
-        signExperimentCompleted = GameObject.Find("Experiment Completed");
-        signExperimentStart = GameObject.Find("Experiment Start");
+
+        signExperimentCompleted = GameObject.Find("Sign Experiment Completed");
+        signExperimentStart = GameObject.Find("Sign Experiment Start");
         taskSelection = GameObject.Find("Task Selection").GetComponent<Dropdown>();
+
+        audioSelectCorrect = GameObject.Find("Audio/Select Correct").GetComponent<AudioSource>();
+        audioSelectWrong = GameObject.Find("Audio/Select Wrong").GetComponent<AudioSource>();
+        audioStart = GameObject.Find("Audio/Start").GetComponent<AudioSource>();
+        audioComplete = GameObject.Find("Audio/Complete").GetComponent<AudioSource>();
+        audioSelectWrong.time = 1.0f;
+        audioSelectCorrect.pitch = 1.5f;
+
 
         //  load task
         taskSelection.options.Clear();
@@ -68,7 +83,6 @@ public class Play : MonoBehaviour {
 
         //  accumulate movement, show sign
         if (experiment != null) {
-            //Debug.Log(experiment.targetObject.name);
             experiment.ControllerMove(controller.transform.position);
             signExperimentStart.SetActive(experiment.startSignal);
             signExperimentCompleted.SetActive(experiment.completed);
@@ -77,7 +91,12 @@ public class Play : MonoBehaviour {
         //  user event
         if (ViveInput.GetPressDown(handRole, ControllerButton.FullTrigger)) {
             if (experiment != null) {
-                experiment.Select(selectedObject);
+                int status = experiment.Select(selectedObject);
+                if (status == 1) {
+                    audioSelectCorrect.Play();
+                } else if (status == 0) {
+                    audioSelectWrong.Play();
+                }
             }
         }
 
@@ -102,6 +121,7 @@ public class Play : MonoBehaviour {
 
     public void OnClick_Start() {
         experiment.Start();
+        audioStart.Play();
     }
     public void OnValueChange_TaskSelection() {
         int value = taskSelection.value;
@@ -406,24 +426,23 @@ class Experiment {
         record.Add("start " + TimeString());
         //  start signal
         startSignal = true;
-        Timer timer = new Timer(1000);
+        Timer timer = new Timer(1500);
         timer.Elapsed += new ElapsedEventHandler(StartSignalTimeOut);
         timer.AutoReset = false;
         timer.Enabled = true;
     }
-    public void Select(GameObject selectedObject) {
-        if (completed) return;
-        if (!started) {
-            if (selectedObject == targetObject) Next();
-            return;
-        }
+    public int Select(GameObject selectedObject) {
+        if (completed) return -1;
         bool correct = (selectedObject == targetObject);
         if (correct) {
-            trials += 1;
+            if (started) trials += 1;
             Next();
         }
-        record.Add("select " + targetObject.name + " " + correct + " " + movementTotal + " " + TimeString());
-        if (trials >= trialsMax) Complete();
+        if (started) {
+            record.Add("select " + targetObject.name + " " + correct + " " + movementTotal + " " + TimeString());
+            if (trials >= trialsMax) Complete();
+        }
+        return correct ? 1 : 0;
     }
     public void ControllerMove(Vector3 nowPosition) {
         if (started) {
@@ -500,6 +519,7 @@ class Experiment {
         StreamWriter writer = new StreamWriter(new FileStream("Log/" + play.SettingString() + ".txt", FileMode.OpenOrCreate));
         foreach (string r in record) writer.WriteLine(r);
         writer.Close();
+        play.audioComplete.Play();
     }
     void StartSignalTimeOut(object source, ElapsedEventArgs args) {
         startSignal = false;
