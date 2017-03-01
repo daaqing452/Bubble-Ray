@@ -28,6 +28,7 @@ public class Play : MonoBehaviour {
     GameObject signExperimentCompleted;
     GameObject signExperimentStart;
     Dropdown taskSelection;
+    Text userName;
 
     AudioSource audioSelectCorrect;
     AudioSource audioSelectWrong;
@@ -53,14 +54,12 @@ public class Play : MonoBehaviour {
         signExperimentCompleted = GameObject.Find("Sign Experiment Completed");
         signExperimentStart = GameObject.Find("Sign Experiment Start");
         taskSelection = GameObject.Find("Task Selection").GetComponent<Dropdown>();
+        userName = GameObject.Find("User Name Text").GetComponent<Text>();
 
         audioSelectCorrect = GameObject.Find("Audio/Select Correct").GetComponent<AudioSource>();
         audioSelectWrong = GameObject.Find("Audio/Select Wrong").GetComponent<AudioSource>();
         audioStart = GameObject.Find("Audio/Start").GetComponent<AudioSource>();
         audioComplete = GameObject.Find("Audio/Complete").GetComponent<AudioSource>();
-        audioSelectWrong.time = 1.0f;
-        audioSelectCorrect.pitch = 1.5f;
-
 
         //  load task
         taskSelection.options.Clear();
@@ -77,6 +76,8 @@ public class Play : MonoBehaviour {
     }
     
 	void Update() {
+        Debug.Log(userName.text);
+
         //  find current selected object
         playProps = GameObject.FindGameObjectsWithTag(TAG_PLAY_PROP);
         selectedObject = technique.Select();
@@ -99,6 +100,9 @@ public class Play : MonoBehaviour {
                 }
             }
         }
+        if (ViveInput.GetPressDown(handRole, ControllerButton.Menu)) {
+            OnClick_Start();
+        }
 
         //  color
         foreach (GameObject g in playProps) {
@@ -116,7 +120,7 @@ public class Play : MonoBehaviour {
     }
 
     public string SettingString() {
-        return "username" + "-" + experiment.task + "-" + technique.GetMethod() + "-" + DateTime.Now.ToString("yyyy.MM.dd.HH.mm.ss");
+        return userName.text + "-" + experiment.task + "-" + technique.GetMethod() + "-" + DateTime.Now.ToString("yyyy.MM.dd.HH.mm.ss");
     }
 
     public void OnClick_Start() {
