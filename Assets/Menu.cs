@@ -13,13 +13,11 @@ public class Menu : MonoBehaviour {
 
     //  bubble ray type
     GameObject[] subbutton_BubbleRay;
-    GameObject button_BubbleRay_HandCentered;
-    GameObject button_BubbleRay_DepthPlane;
-    GameObject button_BubbleRay_FixedPlane;
-    GameObject button_BubbleRay_CentripetalPlane;
-    GameObject button_BubbleRay_Angular;
-    GameObject button_BubbleRay_DepthSphere;
-    GameObject button_BubbleRay_FixedSphere;
+    GameObject button_BubbleRay_PointingBack;
+    GameObject button_BubbleRay_HandDistance;
+    GameObject button_BubbleRay_HandAngular;
+    GameObject button_BubbleRay_EyesDistance;
+    GameObject button_BubbleRay_EyesAngular;
     
     //  feedback
     GameObject button_Cue_Ray;
@@ -29,20 +27,18 @@ public class Menu : MonoBehaviour {
     void Start() {
         //  static gameobject
         text_Info = GameObject.Find("Menu/Info");
-        button_BubbleRay_HandCentered = GameObject.Find("Menu/Bubble Ray/Button Hand Centered");
-        button_BubbleRay_DepthPlane = GameObject.Find("Menu/Bubble Ray/Button Depth Plane");
-        button_BubbleRay_FixedPlane = GameObject.Find("Menu/Bubble Ray/Button Fixed Plane");
-        button_BubbleRay_CentripetalPlane = GameObject.Find("Menu/Bubble Ray/Button Centripetal Plane");
-        button_BubbleRay_Angular = GameObject.Find("Menu/Bubble Ray/Button Angular");
-        button_BubbleRay_DepthSphere = GameObject.Find("Menu/Bubble Ray/Button Depth Sphere");
-        button_BubbleRay_FixedSphere = GameObject.Find("Menu/Bubble Ray/Button Fixed Sphere");
+        button_BubbleRay_PointingBack = GameObject.Find("Menu/Bubble Ray/Button Pointing Back");
+        button_BubbleRay_HandDistance = GameObject.Find("Menu/Bubble Ray/Button Hand Distance");
+        button_BubbleRay_HandAngular = GameObject.Find("Menu/Bubble Ray/Button Hand Angular");
+        button_BubbleRay_EyesDistance = GameObject.Find("Menu/Bubble Ray/Button Eyes Distance");
+        button_BubbleRay_EyesAngular = GameObject.Find("Menu/Bubble Ray/Button Eyes Angular");
         subbutton_BubbleRay = GameObject.FindGameObjectsWithTag("subbutton bubble ray");
         button_Cue_Ray = GameObject.Find("Menu/Cue/Button Ray");
         button_Cue_FishPole = GameObject.Find("Menu/Cue/Button Fish Pole");
         button_Cue_Bubble = GameObject.Find("Menu/Cue/Button Bubble");
 
         //  initiate
-        OnClick_BubbleRay_HandCentered();
+        OnClick_BubbleRay_HandDistance();
         OnClick_Cue_Ray();
     }
     
@@ -58,47 +54,35 @@ public class Menu : MonoBehaviour {
         }
     }
 
-    public void OnClick_BubbleRay_HandCentered() {
-        BubbleRay.method = "hand centered";
+    public void OnClick_BubbleRay_PointingBack() {
+        BubbleRay.method = "PointingBack";
         ClearTriggeredButton(subbutton_BubbleRay);
-        SetButtonColor(button_BubbleRay_HandCentered, COLOR_TRIGGER);
-        text_Info.GetComponent<Text>().text = "Bubble Ray - Hand Centered";
+        SetButtonColor(button_BubbleRay_PointingBack, COLOR_TRIGGER);
+        text_Info.GetComponent<Text>().text = "Bubble Ray - Pointing Back";
     }
-    public void OnClick_BubbleRay_DepthPlane() {
-        BubbleRay.method = "depth plane";
+    public void OnClick_BubbleRay_HandDistance() {
+        BubbleRay.method = "HandDistance";
         ClearTriggeredButton(subbutton_BubbleRay);
-        SetButtonColor(button_BubbleRay_DepthPlane, COLOR_TRIGGER);
-        text_Info.GetComponent<Text>().text = "Bubble Ray - Depth Plane";
+        SetButtonColor(button_BubbleRay_HandDistance, COLOR_TRIGGER);
+        text_Info.GetComponent<Text>().text = "Bubble Ray - Hand Distance";
     }
-    public void OnClick_BubbleRay_FixedPlane() {
-        BubbleRay.method = "fixed plane";
+    public void OnClick_BubbleRay_HandAngular() {
+        BubbleRay.method = "HandAngular";
         ClearTriggeredButton(subbutton_BubbleRay);
-        SetButtonColor(button_BubbleRay_FixedPlane, COLOR_TRIGGER);
-        text_Info.GetComponent<Text>().text = "Bubble Ray - Fixed Plane";
+        SetButtonColor(button_BubbleRay_HandAngular, COLOR_TRIGGER);
+        text_Info.GetComponent<Text>().text = "Bubble Ray - Hand Angular";
     }
-    public void OnClick_BubbleRay_CentripetalPlane() {
-        BubbleRay.method = "centripetal plane";
+    public void OnClick_BubbleRay_EyesDistance() {
+        BubbleRay.method = "EyesDistance";
         ClearTriggeredButton(subbutton_BubbleRay);
-        SetButtonColor(button_BubbleRay_CentripetalPlane, COLOR_TRIGGER);
-        text_Info.GetComponent<Text>().text = "Bubble Ray - Centripetal Plane";
+        SetButtonColor(button_BubbleRay_EyesDistance, COLOR_TRIGGER);
+        text_Info.GetComponent<Text>().text = "Bubble Ray - Eyes Distance";
     }
-    public void OnClick_BuubleRay_Angular() {
-        BubbleRay.method = "angular";
+    public void OnClick_BuubleRay_EyesAngular() {
+        BubbleRay.method = "EyesAngular";
         ClearTriggeredButton(subbutton_BubbleRay);
-        SetButtonColor(button_BubbleRay_Angular, COLOR_TRIGGER);
-        text_Info.GetComponent<Text>().text = "Bubble Ray - Angular";
-    }
-    public void OnClick_BuubleRay_DepthSphere() {
-        BubbleRay.method = "depth sphere";
-        ClearTriggeredButton(subbutton_BubbleRay);
-        SetButtonColor(button_BubbleRay_DepthSphere, COLOR_TRIGGER);
-        text_Info.GetComponent<Text>().text = "Bubble Ray - Depth Sphere";
-    }
-    public void OnClick_BuubleRay_FixedSphere() {
-        BubbleRay.method = "fixed sphere";
-        ClearTriggeredButton(subbutton_BubbleRay);
-        SetButtonColor(button_BubbleRay_FixedSphere, COLOR_TRIGGER);
-        text_Info.GetComponent<Text>().text = "Bubble Ray - Fixed Sphere";
+        SetButtonColor(button_BubbleRay_EyesAngular, COLOR_TRIGGER);
+        text_Info.GetComponent<Text>().text = "Bubble Ray - Eyes Angular";
     }
 
     public void OnClick_Cue_Ray() {
