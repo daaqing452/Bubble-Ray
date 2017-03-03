@@ -13,12 +13,12 @@ public class Menu : MonoBehaviour {
 
     //  bubble ray type
     GameObject[] subbutton_BubbleRay;
-    GameObject button_BubbleRay_PointingBack;
+    GameObject button_BubbleRay_BackPlane;
+    GameObject button_BubbleRay_BackSphere;
     GameObject button_BubbleRay_HandDistance;
     GameObject button_BubbleRay_HandAngular;
-    GameObject button_BubbleRay_EyesDistance;
-    GameObject button_BubbleRay_EyesAngular;
-    
+    GameObject button_BubbleRay_Test;
+
     //  feedback
     GameObject button_Cue_Ray;
     GameObject button_Cue_FishPole;
@@ -27,11 +27,11 @@ public class Menu : MonoBehaviour {
     void Start() {
         //  static gameobject
         text_Info = GameObject.Find("Menu/Info");
-        button_BubbleRay_PointingBack = GameObject.Find("Menu/Bubble Ray/Button Pointing Back");
+        button_BubbleRay_BackPlane = GameObject.Find("Menu/Bubble Ray/Button Back Plane");
+        button_BubbleRay_BackSphere = GameObject.Find("Menu/Bubble Ray/Button Back Sphere");
         button_BubbleRay_HandDistance = GameObject.Find("Menu/Bubble Ray/Button Hand Distance");
         button_BubbleRay_HandAngular = GameObject.Find("Menu/Bubble Ray/Button Hand Angular");
-        button_BubbleRay_EyesDistance = GameObject.Find("Menu/Bubble Ray/Button Eyes Distance");
-        button_BubbleRay_EyesAngular = GameObject.Find("Menu/Bubble Ray/Button Eyes Angular");
+        button_BubbleRay_Test = GameObject.Find("Menu/Bubble Ray/Button Test");
         subbutton_BubbleRay = GameObject.FindGameObjectsWithTag("subbutton bubble ray");
         button_Cue_Ray = GameObject.Find("Menu/Cue/Button Ray");
         button_Cue_FishPole = GameObject.Find("Menu/Cue/Button Fish Pole");
@@ -40,6 +40,8 @@ public class Menu : MonoBehaviour {
         //  initiate
         OnClick_BubbleRay_HandDistance();
         OnClick_Cue_Ray();
+        OnClick_Cue_FishPole();
+        OnClick_Cue_Bubble();
     }
     
     void Update() {
@@ -54,11 +56,17 @@ public class Menu : MonoBehaviour {
         }
     }
 
-    public void OnClick_BubbleRay_PointingBack() {
-        BubbleRay.method = "PointingBack";
+    public void OnClick_BubbleRay_BackPlane() {
+        BubbleRay.method = "BackPlane";
         ClearTriggeredButton(subbutton_BubbleRay);
-        SetButtonColor(button_BubbleRay_PointingBack, COLOR_TRIGGER);
-        text_Info.GetComponent<Text>().text = "Bubble Ray - Pointing Back";
+        SetButtonColor(button_BubbleRay_BackPlane, COLOR_TRIGGER);
+        text_Info.GetComponent<Text>().text = "Bubble Ray - Back Plane";
+    }
+    public void OnClick_BubbleRay_BackSphere() {
+        BubbleRay.method = "BackSphere";
+        ClearTriggeredButton(subbutton_BubbleRay);
+        SetButtonColor(button_BubbleRay_BackSphere, COLOR_TRIGGER);
+        text_Info.GetComponent<Text>().text = "Bubble Ray - Back Sphere";
     }
     public void OnClick_BubbleRay_HandDistance() {
         BubbleRay.method = "HandDistance";
@@ -72,17 +80,11 @@ public class Menu : MonoBehaviour {
         SetButtonColor(button_BubbleRay_HandAngular, COLOR_TRIGGER);
         text_Info.GetComponent<Text>().text = "Bubble Ray - Hand Angular";
     }
-    public void OnClick_BubbleRay_EyesDistance() {
-        BubbleRay.method = "EyesDistance";
+    public void OnClick_BubbleRay_Test() {
+        BubbleRay.method = "Test";
         ClearTriggeredButton(subbutton_BubbleRay);
-        SetButtonColor(button_BubbleRay_EyesDistance, COLOR_TRIGGER);
-        text_Info.GetComponent<Text>().text = "Bubble Ray - Eyes Distance";
-    }
-    public void OnClick_BuubleRay_EyesAngular() {
-        BubbleRay.method = "EyesAngular";
-        ClearTriggeredButton(subbutton_BubbleRay);
-        SetButtonColor(button_BubbleRay_EyesAngular, COLOR_TRIGGER);
-        text_Info.GetComponent<Text>().text = "Bubble Ray - Eyes Angular";
+        SetButtonColor(button_BubbleRay_Test, COLOR_TRIGGER);
+        text_Info.GetComponent<Text>().text = "Bubble Ray - Test";
     }
 
     public void OnClick_Cue_Ray() {

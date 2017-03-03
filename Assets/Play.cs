@@ -187,7 +187,7 @@ class BubbleRay : Technique {
         
         float minF = 1e20f;
         switch (method) {
-            case "PointingBack":
+            case "BackPlane":
                 float D = -1e20f;
                 foreach (GameObject g in play.playProps) {
                     Vector3 q = g.transform.position;
@@ -210,6 +210,38 @@ class BubbleRay : Technique {
                 }
                 break;
 
+            case "BackSphere":
+                float R = -1e20f;
+                foreach (GameObject g in play.playProps) {
+                    Vector3 q = g.transform.position;
+                    R = Mathf.Max(R, (q - e).magnitude + g.transform.localScale.x / 2);
+                }
+                foreach (GameObject g in play.playProps) {
+                    Vector3 q = g.transform.position;
+                    Vector3 qq = e + (q - e).normalized * R;
+                    Vector3 u = qq - e;
+                    float a = v.x * v.x + v.y * v.y + v.z * v.z;
+                    float b = 2 * ((p.x - e.x) * v.x + (p.y - e.y) * v.y + (p.z - e.z) * v.z);
+                    float c = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) + (p.z - e.z) * (p.z - e.z) - u.magnitude * u.magnitude;
+                    if (b * b - 4 * a * c < 0) continue;
+                    if (Mathf.Abs(a) < EPS) continue;
+                    float t = (-b + Mathf.Sqrt(b * b - 4 * a * c)) / (2 * a);
+                    Vector3 i = p + v * t;
+                    Vector3 w = i - e;
+                    float alpha = Mathf.Acos((u.x * w.x + u.y * w.y + u.z * w.z) / u.magnitude / w.magnitude);
+                    float shadowScale = g.transform.localScale.x / (q - e).magnitude * R;
+                    float d = (qq - i).magnitude - shadowScale / 2;
+                    float f = alpha * u.magnitude;
+                    if (f < minF) {
+                        renderPoint = i;
+                        range = d;
+                        minF = f;
+                        selectedObject = g;
+                    }
+                }
+                renderRotation = play.controller.transform.rotation;
+                break;
+            
             case "HandDistance":
                 foreach (GameObject g in play.playProps) {
                     Vector3 q = g.transform.position;
@@ -246,7 +278,7 @@ class BubbleRay : Technique {
                 renderRotation = play.controller.transform.rotation;
                 break;
 
-            case "EyesDistance":
+            /*case "EyesDistance":
                 foreach (GameObject g in play.playProps) {
                     Vector3 q = g.transform.position;
                     Vector3 n = QuaternionToVector(play.cameraHead.transform.rotation);
@@ -263,9 +295,9 @@ class BubbleRay : Technique {
                 }
                 renderUnit = UNIT_BALL;
                 renderRotation = play.cameraHead.transform.rotation;
-                break;
+                break;*/
             
-            case "EyesAngular":
+            case "Test":
                 foreach (GameObject g in play.playProps) {
                     Vector3 q = g.transform.position;
                     Vector3 u = q - e;
@@ -331,43 +363,7 @@ class BubbleRay : Technique {
                     }
                 }
                 renderRotation = play.cameraHead.transform.rotation;
-                break;
-
-            case "eyes back":
-                float R = -1e20f;
-                foreach (GameObject g in play.playProps) {
-                    Vector3 q = g.transform.position;
-                    R = Mathf.Max(R, (q - e).magnitude + g.transform.localScale.x / 2);
-                }
-                foreach (GameObject g in play.playProps) {
-                    Vector3 q = g.transform.position;
-                    Vector3 qq = e + (q - e).normalized * R;
-                    Vector3 u = qq - e;
-                    float a = v.x * v.x + v.y * v.y + v.z * v.z;
-                    float b = 2 * ((p.x - e.x) * v.x + (p.y - e.y) * v.y + (p.z - e.z) * v.z);
-                    float c = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) + (p.z - e.z) * (p.z - e.z) - u.magnitude * u.magnitude;
-                    if (b * b - 4 * a * c < 0) continue;
-                    if (Mathf.Abs(a) < EPS) continue;
-                    float t = (-b + Mathf.Sqrt(b * b - 4 * a * c)) / (2 * a);
-                    Vector3 i = p + v * t;
-                    Vector3 w = i - e;
-                    float alpha = Mathf.Acos((u.x * w.x + u.y * w.y + u.z * w.z) / u.magnitude / w.magnitude);
-                    float shadowScale = g.transform.localScale.x / (q - e).magnitude * R;
-                    float d = (qq - i).magnitude - shadowScale / 2;
-                    float f = alpha * u.magnitude;
-                    if (f < minF) {
-                        renderPoint = i;
-                        range1 = range0;
-                        range0 = d;
-                        minF = f;
-                        selectedObject = g;
-                    }
-                    else {
-                        range1 = Mathf.Min(range1, d);
-                    }
-                }
-                renderRotation = play.cameraHead.transform.rotation;
-                break;*/
+                break; */
         }
 
         //  draw bubble
