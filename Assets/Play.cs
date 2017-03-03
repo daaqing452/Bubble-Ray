@@ -184,9 +184,29 @@ class BubbleRay : Technique {
         Quaternion renderRotation = QUETERNION_NULL;
         Vector3 renderUnit = UNIT_CIRCLE;
         float range = 1e20f;
-        
+
+        //  intersect
+        bool intersected = false;
+        float minD = 1e20f;
+        foreach (GameObject g in play.playProps) {
+            Vector3 q = g.transform.position;
+            if (Mathf.Abs(v.x + v.y + v.z) < EPS) continue;
+            float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
+            Vector3 i = p + v * t;
+            if ((q - i).magnitude < g.transform.localScale.x / 2) {
+                intersected = true;
+                float d = (q - p).magnitude;
+                if (d < minD) {
+                    minD = d;
+                    selectedObject = g;
+                    range = 0;
+                }
+            } 
+        }
+
+        //  find distance
         float minF = 1e20f;
-        switch (method) {
+        if (!intersected) switch (method) {
             case "BackPlane":
                 float D = -1e20f;
                 foreach (GameObject g in play.playProps) {
