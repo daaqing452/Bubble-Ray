@@ -111,8 +111,13 @@ public class Menu : MonoBehaviour {
     }
 
     public void OnClick_Technique_NaiveRay() {
+        if (play.technique != null) play.technique.Deconstruct();
+        play.technique = new NaiveRay(play);
+        ClearTriggeredButton(subbutton_Technique);
+        SetButtonColor(button_Technique_NaiveRay, COLOR_TRIGGER);
     }
     public void OnClick_Technique_BubbleRay() {
+        if (play.technique != null) play.technique.Deconstruct();
         play.technique = new BubbleRay(play);
         ClearTriggeredButton(subbutton_Technique);
         SetButtonColor(button_Technique_BubbleRay, COLOR_TRIGGER);

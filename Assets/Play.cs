@@ -276,9 +276,9 @@ class Experiment {
                 }
                 foreach (int j in ra) uniformObjects.Add(selectableObjects[j]);
             }
-            string ss = "";
+            /*string ss = "";
             foreach (GameObject g in uniformObjects) ss += g.name[8];
-            Debug.Log(ss);
+            Debug.Log(ss);*/
         }
     }
 
@@ -310,21 +310,25 @@ class Experiment {
 }
 
 public class Technique {
-    //  constant
+    //  utils
     public const float EPS = 1e-5f;
+    public static System.Random random = new System.Random((int)DateTime.Now.Ticks);
 
     //  common
     public string method = "~";
     protected Play play;
-
+    
     protected Technique(Play play) {
         this.play = play;
     }
 
-    public static System.Random random = new System.Random((int)DateTime.Now.Ticks);
+    public virtual void Deconstruct() {
+    }
 
-    public virtual GameObject Select() { return new GameObject(); }
-    
+    public virtual GameObject Select() {
+        return new GameObject();
+    }
+
     public static Vector3 QuaternionToVector(Quaternion q) {
         Vector3 r = q.eulerAngles / 180.0f * Mathf.Acos(-1);
         float dx = Mathf.Cos(r.x) * Mathf.Sin(r.y);
@@ -332,11 +336,9 @@ public class Technique {
         float dz = Mathf.Cos(r.x) * Mathf.Cos(r.y);
         return new Vector3(dx, dy, dz);
     }
-
     public static string TimeString() {
         return DateTime.Now.ToString("HH:mm:ss.ffffff");
     }
-
     public static int[] Shuffle(int n) {
         int[] a = new int[n];
         for (int i = 0; i < n; i++) a[i] = i;
@@ -352,7 +354,13 @@ public class Technique {
 
 class NaiveRay : Technique {
     public NaiveRay(Play play) : base(play) {
+        method = "NaiveRay";
         play.visibilityRay = true;
+    }
+
+    public override void Deconstruct() {
+        play.visibilityRay = false;
+        base.Deconstruct();
     }
 
     public override GameObject Select() {
@@ -398,8 +406,17 @@ class BubbleRay : NaiveRay {
     LineRenderer fishPole;
 
     public BubbleRay(Play play) : base(play) {
+        method = "HandDistance";
         bubble = GameObject.Find("Bubble Ray/Bubble");
         fishPole = GameObject.Find("Bubble Ray/Fish Pole").GetComponent<LineRenderer>();
+    }
+
+    public override void Deconstruct() {
+        visibilityFishPole = false;
+        visibilityBubble = false;
+        DrawFishPole(POINT_HIDE, POINT_HIDE, POINT_HIDE);
+        DrawBubble(POINT_HIDE, QUETERNION_NULL, UNIT_BALL, 0);
+        base.Deconstruct();
     }
 
     public override GameObject Select() {
@@ -599,35 +616,33 @@ class BubbleRay : NaiveRay {
                 renderRotation = play.cameraHead.transform.rotation;
                 break; */
         }
+        DrawFishPole(p, selectedObject.transform.position, v);
+        DrawBubble(renderPoint, renderRotation, renderUnit, range);
+        return selectedObject;
+    }
 
-        //  draw bubble
+    void DrawBubble(Vector3 renderPoint, Quaternion renderRotation, Vector3 renderUnit, float range) {
         float renderScale = range * 2;
         Transform transformBubble = bubble.transform;
         transformBubble.position = (visibilityBubble) ? renderPoint : POINT_HIDE;
         transformBubble.rotation = renderRotation;
         transformBubble.localScale = renderUnit * ((visibilityBubble) ? renderScale : 1);
-
-        //  draw fishpole
-        if (visibilityFishPole) {
-            DrawTwoOrderBezierCurve(play.controller.transform.position, selectedObject.transform.position, v);
-        }
-        else {
-            fishPole.positionCount = 0;
-        }
-        
-        return selectedObject;
     }
 
-    void DrawTwoOrderBezierCurve(Vector3 p, Vector3 q, Vector3 v) {
-        float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
-        Vector3 r = p + v * t * 0.8f;
-        List<Vector3> bs = new List<Vector3>();
-        for (int i = 0; i <= 100; i++) {
-            float j = i / 100.0f;
-            Vector3 b = (1 - j) * (1 - j) * p + 2 * j * (1 - j) * r + j * j * q;
-            bs.Add(b);
+    void DrawFishPole(Vector3 p, Vector3 q, Vector3 v) {
+        if (visibilityFishPole) {
+            float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
+            Vector3 r = p + v * t * 0.8f;
+            List<Vector3> bs = new List<Vector3>();
+            for (int i = 0; i <= 100; i++) {
+                float j = i / 100.0f;
+                Vector3 b = (1 - j) * (1 - j) * p + 2 * j * (1 - j) * r + j * j * q;
+                bs.Add(b);
+            }
+            fishPole.SetPositions(bs.ToArray());
+            fishPole.positionCount = bs.Count;
+        } else {
+            fishPole.positionCount = 0;
         }
-        fishPole.SetPositions(bs.ToArray());
-        fishPole.positionCount = bs.Count;
     }
 }
