@@ -135,9 +135,13 @@ public class Play : MonoBehaviour {
 }
 
 class Technique {
+    public static System.Random random = new System.Random((int)DateTime.Now.Ticks);
+
     public virtual GameObject Select() { return new GameObject(); }
 
-    public virtual string GetMethod() { return "null"; }
+    public virtual string GetMethod() {
+        return "null";
+    }
 
     public static Vector3 QuaternionToVector(Quaternion q) {
         Vector3 r = q.eulerAngles / 180.0f * Mathf.Acos(-1);
@@ -145,6 +149,22 @@ class Technique {
         float dy = -Mathf.Sin(r.x);
         float dz = Mathf.Cos(r.x) * Mathf.Cos(r.y);
         return new Vector3(dx, dy, dz);
+    }
+
+    public static string TimeString() {
+        return DateTime.Now.ToString("HH:mm:ss.ffffff");
+    }
+
+    public static int[] Shuffle(int n) {
+        int[] a = new int[n];
+        for (int i = 0; i < n; i++) a[i] = i;
+        for (int i = 0; i < n; i++) {
+            int x = random.Next() % n;
+            int t = a[i];
+            a[i] = a[x];
+            a[x] = t;
+        }
+        return a;
     }
 }
 
@@ -423,6 +443,9 @@ class BubbleRay : Technique {
 }
 
 class Experiment {
+    //  constant
+    const int DEFAULT_TRIAL_PER_OBJECT = 3;
+
     //  main
     public GameObject targetObject = null;
     public bool completed = false;
@@ -432,12 +455,18 @@ class Experiment {
     bool started = false;
     List<string> record = new List<string>();
 
-    //  measures
-    int trials = 0;
-    int trialsMax;
-    float movementTotal = 0;
+    //  next
+    string nextPattern = "random";
+    List<GameObject> selectableObjects = new List<GameObject>();
+    List<GameObject> uniformObjects = new List<GameObject>();
 
+    //  trial
+    int trial = 0;
+    int trialMax = -1;
+
+    //  measures
     Vector3 prevPosition = Vector3.zero;
+    float movementTotal = 0;
 
     public Experiment(Play play, string task) {
         this.task = task;
@@ -450,9 +479,10 @@ class Experiment {
         started = true;
         completed = false;
         record.Clear();
-        record.Add("start " + TimeString());
-        trials = 0;
+        record.Add("start " + Technique.TimeString());
+        trial = 0;
         movementTotal = 0;
+        Next();
         //  start signal
         startSignal = true;
         Timer timer = new Timer(1500);
@@ -460,25 +490,28 @@ class Experiment {
         timer.AutoReset = false;
         timer.Enabled = true;
     }
+
     public int Select(GameObject selectedObject) {
         if (completed) return -1;
         bool correct = (selectedObject == targetObject);
         if (correct) {
-            if (started) trials += 1;
+            if (started) trial += 1;
             Next();
         }
         if (started) {
-            record.Add("select " + targetObject.name + " " + correct + " " + movementTotal + " " + TimeString());
-            if (trials >= trialsMax) Complete();
+            record.Add("select " + targetObject.name + " " + correct + " " + movementTotal + " " + Technique.TimeString());
+            if (trial >= trialMax) Complete();
         }
         return correct ? 1 : 0;
     }
+
     public void ControllerMove(Vector3 nowPosition) {
         if (started) {
             movementTotal += (nowPosition - prevPosition).magnitude;
         }
         prevPosition = nowPosition;
     }
+
     void Load(string fileName) {
         //  clean up
         completed = false;
@@ -488,6 +521,7 @@ class Experiment {
         //  read
         int lineNo = -1;
         GameObject newGameObject = null;
+        int selectable = 1;
         StreamReader reader = new StreamReader(new FileStream(fileName, FileMode.Open));
         while (true) {
             lineNo++;
@@ -495,8 +529,11 @@ class Experiment {
             if (line == null) break;
             string[] arr = line.Split(' ');
             switch (arr[0]) {
-                case "trials":
-                    trialsMax = int.Parse(arr[1]);
+                case "next":
+                    nextPattern = arr[1];
+                    break;
+                case "trialmax":
+                    trialMax = int.Parse(arr[1]);
                     break;
                 case "object":
                     PrimitiveType primitiveType = 0;
@@ -504,9 +541,13 @@ class Experiment {
                     newGameObject = GameObject.CreatePrimitive(primitiveType);
                     newGameObject.transform.parent = GameObject.Find("Play").transform;
                     newGameObject.tag = Play.TAG_PLAY_PROP;
+                    selectable = 1;
                     break;
                 case "name":
                     newGameObject.name = line.Substring(5);
+                    break;
+                case "selectable":
+                    selectable = int.Parse(arr[1]);
                     break;
                 case "position":
                     float px = float.Parse(arr[1]), py = float.Parse(arr[2]), pz = float.Parse(arr[3]);
@@ -525,24 +566,50 @@ class Experiment {
                     newGameObject.GetComponent<Renderer>().material.color = new Color(cr, cg, cb);
                     break;
                 case "end":
+                    if (selectable == 1) selectableObjects.Add(newGameObject);
                     if (targetObject == null) targetObject = newGameObject;
                     newGameObject = null;
                     break;
             }
         }
         reader.Close();
-        
+
         //  reload play props
         play.playProps = GameObject.FindGameObjectsWithTag(Play.TAG_PLAY_PROP);
-    }
-    void Next() {
-        GameObject prevTargetObject = targetObject;
-        while (true) {
-            int x = new System.Random().Next() % play.playProps.Length;
-            targetObject = play.playProps[x];
-            if (targetObject != prevTargetObject) break;
+
+        //  generate uniform gameobjects
+        int n = selectableObjects.Count;
+        if (trialMax == -1) trialMax = n * DEFAULT_TRIAL_PER_OBJECT;
+        if (nextPattern == "uniform") {
+            int gt = (trialMax - 1) / n + 1;
+            for (int i = 0; i <= gt; i++) {
+                int[] ra;
+                while (true) {
+                    ra = Technique.Shuffle(n);
+                    int ulen = uniformObjects.Count;
+                    if (ulen == 0 || uniformObjects[ulen - 1] != selectableObjects[ra[0]]) break;
+                }
+                foreach (int j in ra) uniformObjects.Add(selectableObjects[j]);
+            }
+            string ss = "";
+            foreach (GameObject g in uniformObjects) ss += g.name[8];
+            Debug.Log(ss);
         }
     }
+
+    void Next() {
+        GameObject prevTargetObject = targetObject;
+        if (!started || nextPattern == "random") {
+            while (true) {
+                int x = Technique.random.Next() % selectableObjects.Count;
+                targetObject = play.playProps[x];
+                if (targetObject != prevTargetObject) break;
+            }
+        } else if (nextPattern == "uniform") {
+            targetObject = uniformObjects[trial];
+        }
+    }
+
     void Complete() {
         completed = true;
         StreamWriter writer = new StreamWriter(new FileStream("Log/" + play.SettingString() + ".txt", FileMode.OpenOrCreate));
@@ -550,10 +617,8 @@ class Experiment {
         writer.Close();
         play.audioComplete.Play();
     }
+
     void StartSignalTimeOut(object source, ElapsedEventArgs args) {
         startSignal = false;
-    }
-    public static string TimeString() {
-        return DateTime.Now.ToString("HH:mm:ss.ffffff");
     }
 }
