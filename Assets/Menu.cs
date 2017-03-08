@@ -36,7 +36,8 @@ public class Menu : MonoBehaviour {
 
         //  initiate
         setting_BubbleRay = "Hand Distance";
-        setting_Technique = "Bubble Ray";
+        //setting_Technique = "Bubble Ray";
+        setting_Technique = "3D Bubble Cursor";
     }
     
     void Update() {
@@ -65,9 +66,6 @@ public class Menu : MonoBehaviour {
         //  renew button technique
         if (change_Technique) {
             change_Technique = false;
-            change_BubbleRay = true;
-            change_Cue_FishPole = true;
-            change_Cue_Bubble = true;
             foreach (GameObject g in subbutton_Technique) SetButtonColor(g, COLOR_NONE);
             SetButtonColor(GameObject.Find("Menu/Technique/Button " + setting_Technique), COLOR_TRIGGER);
             switch (setting_Technique) {
@@ -76,6 +74,9 @@ public class Menu : MonoBehaviour {
                     break;
                 case "Bubble Ray":
                     play.ChangeTechnique<BubbleRay>();
+                    break;
+                case "3D Bubble Cursor":
+                    play.ChangeTechnique<X3DBubbleCursor>();
                     break;
             }
         }
@@ -120,11 +121,18 @@ public class Menu : MonoBehaviour {
     }
 
     public void OnClick_Technique_NaiveRay() {
-        change_Technique = (setting_Technique != "Naive Ray");
+        string prevSetting_Technique = setting_Technique;
         setting_Technique = "Naive Ray";
+        change_Technique = (setting_Technique != prevSetting_Technique);
     }
     public void OnClick_Technique_BubbleRay() {
-        change_Technique = (setting_Technique != "Bubble Ray");
+        string prevSetting_Technique = setting_Technique;
         setting_Technique = "Bubble Ray";
+        change_Technique = (setting_Technique != prevSetting_Technique);
+    }
+    public void OnClick_Technique_3DBubbleCursor() {
+        string prevSetting_Technique = setting_Technique;
+        setting_Technique = "3D Bubble Cursor";
+        change_Technique = (setting_Technique != prevSetting_Technique);
     }
 }

@@ -19,7 +19,6 @@ public class Play : MonoBehaviour {
     public GameObject controller;
     GameObject controllerLeft;
     GameObject controllerRight;
-    GameObject ray;
     HandRole handRole;
 
     GameObject signExperimentCompleted;
@@ -36,16 +35,13 @@ public class Play : MonoBehaviour {
     GameObject selectedObject;
     Experiment experiment = null;
     public Technique technique = null;
-    public bool visibilityRay = false;
-
+    
     void Awake() {
-        //  static gameobject
+        //  gameobject
         cameraHead = GameObject.Find("VROrigin/[CameraRig]/Camera (eye)");
         controllerLeft = GameObject.Find("VROrigin/[CameraRig]/Controller (left)");
         controllerRight = GameObject.Find("VROrigin/[CameraRig]/Controller (right)");
         controller = controllerRight;
-        ray = GameObject.Find("Ray");
-        ray.transform.SetParent(controller.transform);
         handRole = HandRole.RightHand;
 
         signExperimentCompleted = GameObject.Find("Sign Experiment Completed");
@@ -58,6 +54,26 @@ public class Play : MonoBehaviour {
         audioStart = GameObject.Find("Audio/Start").GetComponent<AudioSource>();
         audioComplete = GameObject.Find("Audio/Complete").GetComponent<AudioSource>();
 
+        //  init static
+        NaiveCursor.cursor = GameObject.Find("Cue/Cursor");
+        NaiveCursor.cursor.transform.SetParent(controller.transform);
+        NaiveCursor.cursor.transform.localPosition = new Vector3(0, 0, 0.1f);
+        NaiveCursor.cursor.transform.localRotation = Quaternion.Euler(0, 0, 0);
+        NaiveCursor.cursor.transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
+        NaiveCursor.cursor.SetActive(false);
+
+        NaiveRay.ray = GameObject.Find("Cue/Ray");
+        NaiveRay.ray.transform.SetParent(controller.transform);
+        NaiveRay.ray.transform.localPosition = new Vector3(0, 0, 500);
+        NaiveRay.ray.transform.localRotation = Quaternion.Euler(90, 0, 0);
+        NaiveRay.ray.transform.localScale = new Vector3(0.01f, 500, 0.01f);
+        NaiveRay.ray.SetActive(false);
+        
+        BubbleRay.bubble = GameObject.Find("Cue/Bubble");
+        BubbleRay.bubble.SetActive(false);
+        BubbleRay.fishPole = GameObject.Find("Cue/Fish Pole");
+        BubbleRay.fishPole.SetActive(false);
+
         //  load task
         taskSelection.options.Clear();
         string[] taskNameList = Directory.GetFiles("Task/", "*.conf");
@@ -68,7 +84,7 @@ public class Play : MonoBehaviour {
         OnValueChange_TaskSelection();
 
         //  main
-        ChangeTechnique<BubbleRay>();
+        ChangeTechnique<Technique>();
     }
     
 	void Update() {
@@ -110,9 +126,6 @@ public class Play : MonoBehaviour {
                 g.GetComponent<Renderer>().material.color = Color.white;
             }
         }
-        
-        //  feedback
-        ray.SetActive(visibilityRay);
     }
 
     public void ChangeTechnique<T>() where T : Technique, new() {
@@ -334,7 +347,7 @@ public class Technique {
     }
 
     public virtual GameObject Select() {
-        return new GameObject();
+        return null;
     }
 
     public static Vector3 QuaternionToVector(Quaternion q) {
@@ -360,14 +373,35 @@ public class Technique {
     }
 }
 
-class NaiveRay : Technique {
-    public NaiveRay() : base() {
-        method = "NaiveRay";
-        play.visibilityRay = true;
+class NaiveCursor : Technique {
+    public static GameObject cursor;
+    public NaiveCursor() : base() {
+        method = "Naive Cursor";
+        cursor.SetActive(true);
     }
 
     public override void Deconstruct() {
-        play.visibilityRay = false;
+        cursor.SetActive(false);
+        base.Deconstruct();
+    }
+}
+
+class X3DBubbleCursor : NaiveCursor {
+    public X3DBubbleCursor() : base() {
+
+    }
+}
+
+class NaiveRay : Technique {
+    public static GameObject ray;
+
+    public NaiveRay() : base() {
+        method = "NaiveRay";
+        ray.SetActive(true);
+    }
+
+    public override void Deconstruct() {
+        ray.SetActive(false);
         base.Deconstruct();
     }
 
@@ -399,29 +433,28 @@ class NaiveRay : Technique {
 }
 
 class BubbleRay : NaiveRay {
+    public static GameObject bubble;
+    public static GameObject fishPole;
+
     //  menu configuration
-    public static bool visibilityBubble = false;
-    public static bool visibilityFishPole = false;
+    public static bool visibilityBubble = true;
+    public static bool visibilityFishPole = true;
 
     //  constant
     Vector3 POINT_HIDE = new Vector3(0, 0, -5);
     Quaternion QUETERNION_NULL = new Quaternion(1, 0, 0, 0);
     Vector3 UNIT_BALL = new Vector3(1, 1, 1);
     Vector3 UNIT_CIRCLE = new Vector3(1, 1, 0.01f);
-
-    //  game object
-    GameObject bubble;
-    LineRenderer fishPole;
-
+    
     public BubbleRay() : base() {
         method = "Hand Distance";
-        bubble = GameObject.Find("Bubble Ray/Bubble");
-        fishPole = GameObject.Find("Bubble Ray/Fish Pole").GetComponent<LineRenderer>();
+        fishPole.SetActive(true);
+        bubble.SetActive(true);
     }
 
     public override void Deconstruct() {
-        DrawFishPole(POINT_HIDE, POINT_HIDE, POINT_HIDE);
-        DrawBubble(POINT_HIDE, QUETERNION_NULL, UNIT_BALL, 0);
+        fishPole.SetActive(false);
+        bubble.SetActive(false);
         base.Deconstruct();
     }
 
@@ -596,6 +629,7 @@ class BubbleRay : NaiveRay {
     }
 
     void DrawFishPole(Vector3 p, Vector3 q, Vector3 v) {
+        LineRenderer fishPoleRenderer = fishPole.GetComponent<LineRenderer>();
         if (visibilityFishPole) {
             float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
             Vector3 r = p + v * t * 0.8f;
@@ -605,10 +639,10 @@ class BubbleRay : NaiveRay {
                 Vector3 b = (1 - j) * (1 - j) * p + 2 * j * (1 - j) * r + j * j * q;
                 bs.Add(b);
             }
-            fishPole.SetPositions(bs.ToArray());
-            fishPole.positionCount = bs.Count;
+            fishPoleRenderer.SetPositions(bs.ToArray());
+            fishPoleRenderer.positionCount = bs.Count;
         } else {
-            fishPole.positionCount = 0;
+            fishPoleRenderer.positionCount = 0;
         }
     }
 }
