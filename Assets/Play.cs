@@ -77,13 +77,12 @@ public class Play : MonoBehaviour {
         X3DBubbleCursor.bubble2 = GameObject.Find("Cue/Bubble 2");
         X3DBubbleCursor.bubble2.SetActive(false);
 
-        GoGo.arm = GameObject.Find("Cue/hand_right_prefab");
-        GoGo.arm.transform.SetParent(controller.transform);
-        GoGo.arm.transform.localPosition = new Vector3(0, 0, 0);
-        GoGo.arm.transform.localRotation = Quaternion.Euler(0, 0, 0);
-        GoGo.arm.transform.localScale = new Vector3(1, 1, 1);
-
-        GoGo.arm.SetActive(false);
+        GoGo.hand = GameObject.Find("Cue/hand_right_prefab");
+        GoGo.hand.transform.SetParent(controller.transform);
+        GoGo.hand.transform.localPosition = new Vector3(0, 0, 0);
+        GoGo.hand.transform.localRotation = Quaternion.Euler(0, 0, 0);
+        GoGo.hand.transform.localScale = new Vector3(1, 1, 1);
+        GoGo.hand.SetActive(false);
 
         //  load task
         taskSelection.options.Clear();
@@ -684,34 +683,44 @@ class X3DBubbleCursor : Technique {
 }
 
 class GoGo : Technique {
-    const float LINEAR_RANGE = 0.5f;
+    const float LINEAR_RANGE = 0.3f;
     const float NONLINEAR_RATIO = 100.0f;
+    const float TOUCH_RANGE = 0.2f;
 
-    public static GameObject arm;
+    public static GameObject hand;
 
     public GoGo() : base() {
-        arm.SetActive(true);
+        hand.SetActive(true);
     }
 
     public override void Deconstruct() {
-        arm.SetActive(false);
+        hand.SetActive(false);
         base.Deconstruct();
+    }
+
+    public override GameObject Select() {
+        GameObject selectedObject = null;
+        float minD = TOUCH_RANGE;
+        foreach (GameObject g in play.playProps) {
+            float d = (g.transform.position - hand.transform.position).magnitude - g.transform.localScale.x / 2;
+            if (d < minD) {
+                minD = d;
+                selectedObject = g;
+            }
+        }
+        return selectedObject;
     }
 
     public override void Update() {
         Vector3 o = play.cameraHead.transform.position - new Vector3(0, 0.35f, 0);
         Vector3 v = play.controller.transform.position - o;
         if (v.magnitude <= LINEAR_RANGE) {
-            arm.transform.position = o + v;
-        } else {
-            //Debug.Log(v.magnitude + " " + (v.magnitude + NONLINEAR_RATIO * Mathf.Pow(v.magnitude - LINEAR_RANGE, 2)));
-            arm.transform.position = o + v.normalized * (v.magnitude + NONLINEAR_RATIO * Mathf.Pow(v.magnitude - LINEAR_RANGE, 2));
+            hand.transform.position = o + v;
         }
-        arm.transform.rotation = play.controller.transform.rotation;
-    }
-
-    public override GameObject Select() {
-        return base.Select();
+        else {
+            hand.transform.position = o + v.normalized * (v.magnitude + NONLINEAR_RATIO * Mathf.Pow(v.magnitude - LINEAR_RANGE, 2));
+        }
+        hand.transform.rotation = play.controller.transform.rotation;
     }
 }
 
