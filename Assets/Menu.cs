@@ -37,7 +37,7 @@ public class Menu : MonoBehaviour {
         //  initiate
         setting_BubbleRay = "Hand Distance";
         //setting_Technique = "Bubble Ray";
-        setting_Technique = "Go Go";
+        setting_Technique = "Heuristic Ray";
     }
     
     void Update() {
@@ -80,6 +80,9 @@ public class Menu : MonoBehaviour {
                     break;
                 case "Go Go":
                     play.ChangeTechnique<GoGo>();
+                    break;
+                case "Heuristic Ray":
+                    play.ChangeTechnique<HeuristicRay>();
                     break;
             }
         }
@@ -141,6 +144,11 @@ public class Menu : MonoBehaviour {
     public void OnClick_Technique_GoGo() {
         string prevSetting_Technique = setting_Technique;
         setting_Technique = "Go Go";
+        change_Technique = (setting_Technique != prevSetting_Technique);
+    }
+    public void OnClick_Technique_HeuristicRay() {
+        string prevSetting_Technique = setting_Technique;
+        setting_Technique = "Heuristic Ray";
         change_Technique = (setting_Technique != prevSetting_Technique);
     }
 }

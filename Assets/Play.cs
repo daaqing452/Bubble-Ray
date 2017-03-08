@@ -64,7 +64,9 @@ public class Play : MonoBehaviour {
 
         BubbleRay.bubble = GameObject.Find("Cue/Bubble");
         BubbleRay.fishPole = GameObject.Find("Cue/Fish Pole");
-        BubbleRay.fishPole.SetActive(false);
+
+        HeuristicRay.fishPole = GameObject.Find("Cue/Fish Pole");
+        HeuristicRay.fishPole.SetActive(false);
 
         X3DBubbleCursor.cursor = GameObject.Find("Cue/Cursor");
         X3DBubbleCursor.cursor.transform.SetParent(controller.transform);
@@ -636,6 +638,19 @@ class BubbleRay : NaiveRay {
         else {
             fishPoleRenderer.positionCount = 0;
         }
+    }
+}
+
+class HeuristicRay : NaiveRay {
+    public static GameObject fishPole;
+    public HeuristicRay() : base() {
+        method = "Heuristic Ray";
+        fishPole.SetActive(true);
+    }
+
+    public override void Deconstruct() {
+        fishPole.SetActive(false);
+        base.Deconstruct();
     }
 }
 

@@ -505,9 +505,9 @@ MonoBehaviour:
     height: 679
   m_TreeViewState:
     scrollPos: {x: 0, y: 0}
-    m_SelectedIDs: 08070000
-    m_LastClickedID: 0
-    m_ExpandedIDs: f4d5ffff8cd6ffff7efbffff96fbffff98fbffff9afbffff9efbffffe2fbffff00000000c4290000
+    m_SelectedIDs: e2f6ffff
+    m_LastClickedID: -2334
+    m_ExpandedIDs: e2fbffff00000000c4280000342a0000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
