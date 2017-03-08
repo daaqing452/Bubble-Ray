@@ -36,7 +36,7 @@ public class Play : MonoBehaviour {
     Experiment experiment = null;
     public Technique technique = null;
     
-    void Awake() {
+    void Start() {
         //  gameobject
         cameraHead = GameObject.Find("VROrigin/[CameraRig]/Camera (eye)");
         controllerLeft = GameObject.Find("VROrigin/[CameraRig]/Controller (left)");
@@ -55,24 +55,35 @@ public class Play : MonoBehaviour {
         audioComplete = GameObject.Find("Audio/Complete").GetComponent<AudioSource>();
 
         //  init static
-        NaiveCursor.cursor = GameObject.Find("Cue/Cursor");
-        NaiveCursor.cursor.transform.SetParent(controller.transform);
-        NaiveCursor.cursor.transform.localPosition = new Vector3(0, 0, 0.1f);
-        NaiveCursor.cursor.transform.localRotation = Quaternion.Euler(0, 0, 0);
-        NaiveCursor.cursor.transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
-        NaiveCursor.cursor.SetActive(false);
-
         NaiveRay.ray = GameObject.Find("Cue/Ray");
         NaiveRay.ray.transform.SetParent(controller.transform);
         NaiveRay.ray.transform.localPosition = new Vector3(0, 0, 500);
         NaiveRay.ray.transform.localRotation = Quaternion.Euler(90, 0, 0);
         NaiveRay.ray.transform.localScale = new Vector3(0.01f, 500, 0.01f);
         NaiveRay.ray.SetActive(false);
-        
+
         BubbleRay.bubble = GameObject.Find("Cue/Bubble");
-        BubbleRay.bubble.SetActive(false);
         BubbleRay.fishPole = GameObject.Find("Cue/Fish Pole");
         BubbleRay.fishPole.SetActive(false);
+
+        X3DBubbleCursor.cursor = GameObject.Find("Cue/Cursor");
+        X3DBubbleCursor.cursor.transform.SetParent(controller.transform);
+        X3DBubbleCursor.cursor.transform.localPosition = new Vector3(0, 0, 0.1f);
+        X3DBubbleCursor.cursor.transform.localRotation = Quaternion.Euler(0, 0, 0);
+        X3DBubbleCursor.cursor.transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
+        X3DBubbleCursor.cursor.SetActive(false);
+        X3DBubbleCursor.bubble = GameObject.Find("Cue/Bubble");
+        X3DBubbleCursor.bubble.SetActive(false);
+        X3DBubbleCursor.bubble2 = GameObject.Find("Cue/Bubble 2");
+        X3DBubbleCursor.bubble2.SetActive(false);
+
+        GoGo.arm = GameObject.Find("Cue/hand_right_prefab");
+        GoGo.arm.transform.SetParent(controller.transform);
+        GoGo.arm.transform.localPosition = new Vector3(0, 0, 0);
+        GoGo.arm.transform.localRotation = Quaternion.Euler(0, 0, 0);
+        GoGo.arm.transform.localScale = new Vector3(1, 1, 1);
+
+        GoGo.arm.SetActive(false);
 
         //  load task
         taskSelection.options.Clear();
@@ -90,6 +101,7 @@ public class Play : MonoBehaviour {
 	void Update() {
         //  find current selected object
         playProps = GameObject.FindGameObjectsWithTag(TAG_PLAY_PROP);
+        technique.Update();
         selectedObject = technique.Select();
 
         //  accumulate movement, show sign
@@ -331,23 +343,21 @@ class Experiment {
 }
 
 public class Technique {
-    //  utils
     public const float EPS = 1e-5f;
     public static System.Random random = new System.Random((int)DateTime.Now.Ticks);
-
-    //  common
     public string method = "~";
     public Play play;
     
     public Technique() {
         play = GameObject.Find("Play").GetComponent<Play>();
     }
-
     public virtual void Deconstruct() {
     }
-
     public virtual GameObject Select() {
         return null;
+    }
+    public virtual void Update() {
+
     }
 
     public static Vector3 QuaternionToVector(Quaternion q) {
@@ -370,25 +380,6 @@ public class Technique {
             a[x] = t;
         }
         return a;
-    }
-}
-
-class NaiveCursor : Technique {
-    public static GameObject cursor;
-    public NaiveCursor() : base() {
-        method = "Naive Cursor";
-        cursor.SetActive(true);
-    }
-
-    public override void Deconstruct() {
-        cursor.SetActive(false);
-        base.Deconstruct();
-    }
-}
-
-class X3DBubbleCursor : NaiveCursor {
-    public X3DBubbleCursor() : base() {
-
     }
 }
 
@@ -445,7 +436,7 @@ class BubbleRay : NaiveRay {
     Quaternion QUETERNION_NULL = new Quaternion(1, 0, 0, 0);
     Vector3 UNIT_BALL = new Vector3(1, 1, 1);
     Vector3 UNIT_CIRCLE = new Vector3(1, 1, 0.01f);
-    
+
     public BubbleRay() : base() {
         method = "Hand Distance";
         fishPole.SetActive(true);
@@ -476,145 +467,146 @@ class BubbleRay : NaiveRay {
 
         //  find minimum distance
         float minF = 1e20f;
-        if (selectedObject == null) switch (method) {
-            case "Back Plane":
-                float D = -1e20f;
-                foreach (GameObject g in play.playProps) {
-                    Vector3 q = g.transform.position;
-                    D = Mathf.Max(D, q.z + g.transform.localScale.x / 2);
-                }
-                foreach (GameObject g in play.playProps) {
-                    if (Mathf.Abs(v.z) < EPS) continue;
-                    Vector3 q = g.transform.position;
-                    Vector3 qq = e + (q - e) / (q.z - e.z) * D;
-                    float t = (D - p.z) / v.z;
-                    Vector3 i = p + v * t;
-                    float ShadowScale = g.transform.localScale.x / (q.z - e.z) * D;
-                    float f = (qq - i).magnitude - ShadowScale / 2;
-                    if (f < minF) {
-                        renderPoint = i;
-                        range = f;
-                        minF = f;
-                        selectedObject = g;
+        if (selectedObject == null)
+            switch (method) {
+                case "Back Plane":
+                    float D = -1e20f;
+                    foreach (GameObject g in play.playProps) {
+                        Vector3 q = g.transform.position;
+                        D = Mathf.Max(D, q.z + g.transform.localScale.x / 2);
                     }
-                }
-                break;
+                    foreach (GameObject g in play.playProps) {
+                        if (Mathf.Abs(v.z) < EPS) continue;
+                        Vector3 q = g.transform.position;
+                        Vector3 qq = e + (q - e) / (q.z - e.z) * D;
+                        float t = (D - p.z) / v.z;
+                        Vector3 i = p + v * t;
+                        float ShadowScale = g.transform.localScale.x / (q.z - e.z) * D;
+                        float f = (qq - i).magnitude - ShadowScale / 2;
+                        if (f < minF) {
+                            renderPoint = i;
+                            range = f;
+                            minF = f;
+                            selectedObject = g;
+                        }
+                    }
+                    break;
 
-            case "Back Sphere":
-                float R = -1e20f;
-                foreach (GameObject g in play.playProps) {
-                    Vector3 q = g.transform.position;
-                    R = Mathf.Max(R, (q - e).magnitude + g.transform.localScale.x / 2);
-                }
-                foreach (GameObject g in play.playProps) {
-                    Vector3 q = g.transform.position;
-                    Vector3 qq = e + (q - e).normalized * R;
-                    Vector3 u = qq - e;
-                    float a = v.x * v.x + v.y * v.y + v.z * v.z;
-                    float b = 2 * ((p.x - e.x) * v.x + (p.y - e.y) * v.y + (p.z - e.z) * v.z);
-                    float c = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) + (p.z - e.z) * (p.z - e.z) - u.magnitude * u.magnitude;
-                    if (b * b - 4 * a * c < 0) continue;
-                    if (Mathf.Abs(a) < EPS) continue;
-                    float t = (-b + Mathf.Sqrt(b * b - 4 * a * c)) / (2 * a);
-                    Vector3 i = p + v * t;
-                    Vector3 w = i - e;
-                    float alpha = Mathf.Acos((u.x * w.x + u.y * w.y + u.z * w.z) / u.magnitude / w.magnitude);
-                    float shadowScale = g.transform.localScale.x / (q - e).magnitude * R;
-                    float d = (qq - i).magnitude - shadowScale / 2;
-                    float f = alpha * u.magnitude;
-                    if (f < minF) {
-                        renderPoint = i;
-                        range = d;
-                        minF = f;
-                        selectedObject = g;
+                case "Back Sphere":
+                    float R = -1e20f;
+                    foreach (GameObject g in play.playProps) {
+                        Vector3 q = g.transform.position;
+                        R = Mathf.Max(R, (q - e).magnitude + g.transform.localScale.x / 2);
                     }
-                }
-                renderRotation = play.controller.transform.rotation;
-                break;
-            
-            case "Hand Distance":
-                foreach (GameObject g in play.playProps) {
-                    Vector3 q = g.transform.position;
-                    if (Mathf.Abs(v.x + v.y + v.z) < EPS) continue;
-                    float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
-                    Vector3 i = p + v * t;
-                    float f = (q - i).magnitude - g.transform.localScale.x / 2;
-                    if (f < minF) {
-                        renderPoint = i;
-                        range = f;
-                        minF = f;
-                        selectedObject = g;
+                    foreach (GameObject g in play.playProps) {
+                        Vector3 q = g.transform.position;
+                        Vector3 qq = e + (q - e).normalized * R;
+                        Vector3 u = qq - e;
+                        float a = v.x * v.x + v.y * v.y + v.z * v.z;
+                        float b = 2 * ((p.x - e.x) * v.x + (p.y - e.y) * v.y + (p.z - e.z) * v.z);
+                        float c = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) + (p.z - e.z) * (p.z - e.z) - u.magnitude * u.magnitude;
+                        if (b * b - 4 * a * c < 0) continue;
+                        if (Mathf.Abs(a) < EPS) continue;
+                        float t = (-b + Mathf.Sqrt(b * b - 4 * a * c)) / (2 * a);
+                        Vector3 i = p + v * t;
+                        Vector3 w = i - e;
+                        float alpha = Mathf.Acos((u.x * w.x + u.y * w.y + u.z * w.z) / u.magnitude / w.magnitude);
+                        float shadowScale = g.transform.localScale.x / (q - e).magnitude * R;
+                        float d = (qq - i).magnitude - shadowScale / 2;
+                        float f = alpha * u.magnitude;
+                        if (f < minF) {
+                            renderPoint = i;
+                            range = d;
+                            minF = f;
+                            selectedObject = g;
+                        }
                     }
-                }
-                renderUnit = UNIT_BALL;
-                renderRotation = play.controller.transform.rotation;
-                break;
-                
-            case "Hand Angular":
-                foreach (GameObject g in play.playProps) {
-                    Vector3 q = g.transform.position;
-                    Vector3 u = q - p;
-                    Vector3 w = v.normalized * u.magnitude;
-                    Vector3 s = p + w;
-                    float d = (q - s).magnitude - g.transform.localScale.x / 2;
-                    float f = d / u.magnitude;
-                    if (f < minF) {
-                        renderPoint = s;
-                        range = d;
-                        minF = f;
-                        selectedObject = g;
-                    }
-                }
-                renderRotation = play.controller.transform.rotation;
-                break;
+                    renderRotation = play.controller.transform.rotation;
+                    break;
 
-            /*case "Dynamic Depth Plane":
-                foreach (GameObject g in play.playProps) {
-                    if (Mathf.Abs(v.z) < EPS) continue;
-                    Vector3 q = g.transform.position;
-                    float t = (q.z - p.z) / v.z;
-                    Vector3 i = p + v * t;
-                    float f = (q - i).magnitude - g.transform.localScale.x / 2;
-                    if (f < minF) {
-                        renderPoint = i;
-                        range1 = range0;
-                        range0 = f;
-                        minF = f;
-                        selectedObject = g;
-                    } else {
-                        range1 = Mathf.Min(range1, f);
+                case "Hand Distance":
+                    foreach (GameObject g in play.playProps) {
+                        Vector3 q = g.transform.position;
+                        if (Mathf.Abs(v.x + v.y + v.z) < EPS) continue;
+                        float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
+                        Vector3 i = p + v * t;
+                        float f = (q - i).magnitude - g.transform.localScale.x / 2;
+                        if (f < minF) {
+                            renderPoint = i;
+                            range = f;
+                            minF = f;
+                            selectedObject = g;
+                        }
                     }
-                }
-                break;
+                    renderUnit = UNIT_BALL;
+                    renderRotation = play.controller.transform.rotation;
+                    break;
 
-            case "Dynamic Depth Sphere":
-                foreach (GameObject g in play.playProps) {
-                    Vector3 q = g.transform.position;
-                    Vector3 u = q - e;
-                    float a = v.x * v.x + v.y * v.y + v.z * v.z;
-                    float b = 2 * ((p.x - e.x) * v.x + (p.y - e.y) * v.y + (p.z - e.z) * v.z);
-                    float c = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) + (p.z - e.z) * (p.z - e.z) - u.magnitude * u.magnitude;
-                    if (b * b - 4 * a * c < 0) continue;
-                    if (Mathf.Abs(a) < EPS) continue;
-                    float t = (-b + Mathf.Sqrt(b * b - 4 * a * c)) / (2 * a);
-                    Vector3 i = p + v * t;
-                    Vector3 w = i - e;
-                    float alpha = Mathf.Acos((u.x * w.x + u.y * w.y + u.z * w.z) / u.magnitude / w.magnitude);
-                    float d = (q - i).magnitude - g.transform.localScale.x / 2;
-                    float f = alpha * u.magnitude;
-                    if (f < minF) {
-                        renderPoint = i;
-                        range1 = range0;
-                        range0 = d;
-                        minF = f;
-                        selectedObject = g;
+                case "Hand Angular":
+                    foreach (GameObject g in play.playProps) {
+                        Vector3 q = g.transform.position;
+                        Vector3 u = q - p;
+                        Vector3 w = v.normalized * u.magnitude;
+                        Vector3 s = p + w;
+                        float d = (q - s).magnitude - g.transform.localScale.x / 2;
+                        float f = d / u.magnitude;
+                        if (f < minF) {
+                            renderPoint = s;
+                            range = d;
+                            minF = f;
+                            selectedObject = g;
+                        }
                     }
-                    else {
-                        range1 = Mathf.Min(range1, d);
-                    }
-                }
-                break;*/
-        }
+                    renderRotation = play.controller.transform.rotation;
+                    break;
+
+                    /*case "Dynamic Depth Plane":
+                        foreach (GameObject g in play.playProps) {
+                            if (Mathf.Abs(v.z) < EPS) continue;
+                            Vector3 q = g.transform.position;
+                            float t = (q.z - p.z) / v.z;
+                            Vector3 i = p + v * t;
+                            float f = (q - i).magnitude - g.transform.localScale.x / 2;
+                            if (f < minF) {
+                                renderPoint = i;
+                                range1 = range0;
+                                range0 = f;
+                                minF = f;
+                                selectedObject = g;
+                            } else {
+                                range1 = Mathf.Min(range1, f);
+                            }
+                        }
+                        break;
+
+                    case "Dynamic Depth Sphere":
+                        foreach (GameObject g in play.playProps) {
+                            Vector3 q = g.transform.position;
+                            Vector3 u = q - e;
+                            float a = v.x * v.x + v.y * v.y + v.z * v.z;
+                            float b = 2 * ((p.x - e.x) * v.x + (p.y - e.y) * v.y + (p.z - e.z) * v.z);
+                            float c = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) + (p.z - e.z) * (p.z - e.z) - u.magnitude * u.magnitude;
+                            if (b * b - 4 * a * c < 0) continue;
+                            if (Mathf.Abs(a) < EPS) continue;
+                            float t = (-b + Mathf.Sqrt(b * b - 4 * a * c)) / (2 * a);
+                            Vector3 i = p + v * t;
+                            Vector3 w = i - e;
+                            float alpha = Mathf.Acos((u.x * w.x + u.y * w.y + u.z * w.z) / u.magnitude / w.magnitude);
+                            float d = (q - i).magnitude - g.transform.localScale.x / 2;
+                            float f = alpha * u.magnitude;
+                            if (f < minF) {
+                                renderPoint = i;
+                                range1 = range0;
+                                range0 = d;
+                                minF = f;
+                                selectedObject = g;
+                            }
+                            else {
+                                range1 = Mathf.Min(range1, d);
+                            }
+                        }
+                        break;*/
+            }
         DrawFishPole(p, selectedObject.transform.position, v);
         DrawBubble(renderPoint, renderRotation, renderUnit, range);
         return selectedObject;
@@ -641,8 +633,85 @@ class BubbleRay : NaiveRay {
             }
             fishPoleRenderer.SetPositions(bs.ToArray());
             fishPoleRenderer.positionCount = bs.Count;
-        } else {
+        }
+        else {
             fishPoleRenderer.positionCount = 0;
         }
     }
 }
+
+class X3DBubbleCursor : Technique {
+    const float BUBBLE_SPLIT_GAP = 0.02f;
+    const float BUBBLE2_SCALE_RATIO = 1.2f;
+    public static GameObject cursor;
+    public static GameObject bubble;
+    public static GameObject bubble2;
+
+    public X3DBubbleCursor() : base() {
+        method = "3D Bubble Cursor";
+        cursor.SetActive(true);
+        bubble.SetActive(true);
+        bubble2.SetActive(true);
+    }
+
+    public override void Deconstruct() {
+        cursor.SetActive(false);
+        bubble.SetActive(false);
+        bubble2.SetActive(false);
+        base.Deconstruct();
+    }
+
+    public override GameObject Select() {
+        GameObject selectedObject = null;
+        float minD = 1e20f, secD = 1e20f;
+        foreach (GameObject g in play.playProps) {
+            float d = (cursor.transform.position - g.transform.position).magnitude - g.transform.localScale.x / 2;
+            if (d < minD) {
+                secD = minD;
+                minD = d;
+                selectedObject = g;
+            } else {
+                secD = Math.Min(secD, d);
+            }
+        }
+        float renderScale = Math.Min(minD + selectedObject.transform.localScale.x, secD - BUBBLE_SPLIT_GAP) * 2;
+        bubble.transform.position = cursor.transform.position;
+        bubble.transform.localScale = new Vector3(1, 1, 1) * renderScale;
+        bubble2.transform.position = selectedObject.transform.position;
+        bubble2.transform.localScale = selectedObject.transform.localScale * BUBBLE2_SCALE_RATIO;
+        return selectedObject;
+    }
+}
+
+class GoGo : Technique {
+    const float LINEAR_RANGE = 0.5f;
+    const float NONLINEAR_RATIO = 100.0f;
+
+    public static GameObject arm;
+
+    public GoGo() : base() {
+        arm.SetActive(true);
+    }
+
+    public override void Deconstruct() {
+        arm.SetActive(false);
+        base.Deconstruct();
+    }
+
+    public override void Update() {
+        Vector3 o = play.cameraHead.transform.position - new Vector3(0, 0.35f, 0);
+        Vector3 v = play.controller.transform.position - o;
+        if (v.magnitude <= LINEAR_RANGE) {
+            arm.transform.position = o + v;
+        } else {
+            //Debug.Log(v.magnitude + " " + (v.magnitude + NONLINEAR_RATIO * Mathf.Pow(v.magnitude - LINEAR_RANGE, 2)));
+            arm.transform.position = o + v.normalized * (v.magnitude + NONLINEAR_RATIO * Mathf.Pow(v.magnitude - LINEAR_RANGE, 2));
+        }
+        arm.transform.rotation = play.controller.transform.rotation;
+    }
+
+    public override GameObject Select() {
+        return base.Select();
+    }
+}
+

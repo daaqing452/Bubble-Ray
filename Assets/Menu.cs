@@ -37,7 +37,7 @@ public class Menu : MonoBehaviour {
         //  initiate
         setting_BubbleRay = "Hand Distance";
         //setting_Technique = "Bubble Ray";
-        setting_Technique = "3D Bubble Cursor";
+        setting_Technique = "Go Go";
     }
     
     void Update() {
@@ -77,6 +77,9 @@ public class Menu : MonoBehaviour {
                     break;
                 case "3D Bubble Cursor":
                     play.ChangeTechnique<X3DBubbleCursor>();
+                    break;
+                case "Go Go":
+                    play.ChangeTechnique<GoGo>();
                     break;
             }
         }
@@ -133,6 +136,11 @@ public class Menu : MonoBehaviour {
     public void OnClick_Technique_3DBubbleCursor() {
         string prevSetting_Technique = setting_Technique;
         setting_Technique = "3D Bubble Cursor";
+        change_Technique = (setting_Technique != prevSetting_Technique);
+    }
+    public void OnClick_Technique_GoGo() {
+        string prevSetting_Technique = setting_Technique;
+        setting_Technique = "Go Go";
         change_Technique = (setting_Technique != prevSetting_Technique);
     }
 }

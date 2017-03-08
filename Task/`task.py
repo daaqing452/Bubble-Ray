@@ -3,7 +3,7 @@ import math
 
 PI = math.acos(-1)
 cnt = 0
-p = (0.12, 1.18, 0.17)
+p = (0.00, 0.17, 0.00)
 f = 0
 
 def write(x, y, z, s):
@@ -24,12 +24,13 @@ def cubic():
 				write(x, y, z, 0.3)
 	f.close()
 def near():
+	global f
 	f = open('near.conf', 'w')
-	for i in range(5):
-		x = random.random() * 2 - 1
-		y = random.random() * 2
-		z = random.random() * 1 + 0.3
-		write(x, y, z, 0.2)
+	for i in range(10):
+		x = random.random() * 1.0 - 0.5
+		y = random.random() * 0.5 - 0.25
+		z = random.random() * 0.3 + 0.2
+		write(x, y, z, 0.05)
 	f.close()
 def radiate():
 	f = open('radiate.conf', 'w')
@@ -105,4 +106,4 @@ def occlusion():
 		f.close()
 
 
-occlusion()
+near()
