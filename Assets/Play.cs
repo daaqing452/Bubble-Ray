@@ -66,6 +66,9 @@ public class Play : MonoBehaviour {
         }
         taskSelection.captionText.text = taskSelection.options[0].text;
         OnValueChange_TaskSelection();
+
+        //  main
+        ChangeTechnique<BubbleRay>();
     }
     
 	void Update() {
@@ -118,7 +121,7 @@ public class Play : MonoBehaviour {
     }
 
     public string SettingString() {
-        return userName.text + "-" + experiment.task + "-" + technique.method + "-" + DateTime.Now.ToString("yyyy.MM.dd.HH.mm.ss");
+        return userName.text + "-" + experiment.task + "-" + technique.method.Replace(" ", "") + "-" + DateTime.Now.ToString("yyyy.MM.dd.HH.mm.ss");
     }
     
     public void OnClick_Start() {
@@ -411,14 +414,12 @@ class BubbleRay : NaiveRay {
     LineRenderer fishPole;
 
     public BubbleRay() : base() {
-        method = "HandDistance";
+        method = "Hand Distance";
         bubble = GameObject.Find("Bubble Ray/Bubble");
         fishPole = GameObject.Find("Bubble Ray/Fish Pole").GetComponent<LineRenderer>();
     }
 
     public override void Deconstruct() {
-        visibilityFishPole = false;
-        visibilityBubble = false;
         DrawFishPole(POINT_HIDE, POINT_HIDE, POINT_HIDE);
         DrawBubble(POINT_HIDE, QUETERNION_NULL, UNIT_BALL, 0);
         base.Deconstruct();
@@ -443,7 +444,7 @@ class BubbleRay : NaiveRay {
         //  find minimum distance
         float minF = 1e20f;
         if (selectedObject == null) switch (method) {
-            case "BackPlane":
+            case "Back Plane":
                 float D = -1e20f;
                 foreach (GameObject g in play.playProps) {
                     Vector3 q = g.transform.position;
@@ -466,7 +467,7 @@ class BubbleRay : NaiveRay {
                 }
                 break;
 
-            case "BackSphere":
+            case "Back Sphere":
                 float R = -1e20f;
                 foreach (GameObject g in play.playProps) {
                     Vector3 q = g.transform.position;
@@ -498,7 +499,7 @@ class BubbleRay : NaiveRay {
                 renderRotation = play.controller.transform.rotation;
                 break;
             
-            case "HandDistance":
+            case "Hand Distance":
                 foreach (GameObject g in play.playProps) {
                     Vector3 q = g.transform.position;
                     if (Mathf.Abs(v.x + v.y + v.z) < EPS) continue;
@@ -516,7 +517,7 @@ class BubbleRay : NaiveRay {
                 renderRotation = play.controller.transform.rotation;
                 break;
                 
-            case "HandAngular":
+            case "Hand Angular":
                 foreach (GameObject g in play.playProps) {
                     Vector3 q = g.transform.position;
                     Vector3 u = q - p;
@@ -534,46 +535,7 @@ class BubbleRay : NaiveRay {
                 renderRotation = play.controller.transform.rotation;
                 break;
 
-            /*case "EyesDistance":
-                foreach (GameObject g in play.playProps) {
-                    Vector3 q = g.transform.position;
-                    Vector3 n = QuaternionToVector(play.cameraHead.transform.rotation);
-                    if (Mathf.Abs(v.x * n.x + v.y * n.y + v.z * n.z) < EPS) continue;
-                    float t = -((p.x - q.x) * n.x + (p.y - q.y) * n.y + (p.z - q.z) * n.z) / (v.x * n.x + v.y * n.y + v.z * n.z);
-                    Vector3 i = p + v * t;
-                    float f = (q - i).magnitude - g.transform.localScale.x / 2;
-                    if (f < minF) {
-                        renderPoint = i;
-                        range = f;
-                        minF = f;
-                        selectedObject = g;
-                    }
-                }
-                renderUnit = UNIT_BALL;
-                renderRotation = play.cameraHead.transform.rotation;
-                break;*/
-            
-            case "EyesAngular":
-                foreach (GameObject g in play.playProps) {
-                    Vector3 q = g.transform.position;
-                    Vector3 u = q - e;
-                    if (Mathf.Abs(v.x * u.x + v.y * u.y + v.z * u.z) < EPS) continue;
-                    if (Mathf.Abs(u.magnitude) < EPS) continue;
-                    float t = -((p.x - q.x) * u.x + (p.y - q.y) * u.y + (p.z - q.z) * u.z) / (v.x * u.x + v.y * u.y + v.z * u.z);
-                    Vector3 i = p + v * t;
-                    float d = (q - i).magnitude - g.transform.localScale.x / 2;
-                    float f = d / u.magnitude;
-                    if (f < minF) {
-                        renderPoint = i;
-                        range = d;
-                        minF = f;
-                        selectedObject = g;
-                    }
-                }
-                renderRotation = play.cameraHead.transform.rotation;
-                break;
-                
-            /*case "depth plane":
+            /*case "Dynamic Depth Plane":
                 foreach (GameObject g in play.playProps) {
                     if (Mathf.Abs(v.z) < EPS) continue;
                     Vector3 q = g.transform.position;
@@ -592,7 +554,7 @@ class BubbleRay : NaiveRay {
                 }
                 break;
 
-            case "depth sphere":
+            case "Dynamic Depth Sphere":
                 foreach (GameObject g in play.playProps) {
                     Vector3 q = g.transform.position;
                     Vector3 u = q - e;
@@ -618,8 +580,7 @@ class BubbleRay : NaiveRay {
                         range1 = Mathf.Min(range1, d);
                     }
                 }
-                renderRotation = play.cameraHead.transform.rotation;
-                break; */
+                break;*/
         }
         DrawFishPole(p, selectedObject.transform.position, v);
         DrawBubble(renderPoint, renderRotation, renderUnit, range);
