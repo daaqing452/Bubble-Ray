@@ -35,7 +35,7 @@ public class Play : MonoBehaviour {
     //  method
     GameObject selectedObject;
     Experiment experiment = null;
-    public Technique technique;
+    public Technique technique = null;
     public bool visibilityRay = false;
 
     void Awake() {
@@ -112,10 +112,15 @@ public class Play : MonoBehaviour {
         ray.SetActive(visibilityRay);
     }
 
+    public void ChangeTechnique<T>() where T : Technique, new() {
+        if (technique != null) technique.Deconstruct();
+        technique = new T();
+    }
+
     public string SettingString() {
         return userName.text + "-" + experiment.task + "-" + technique.method + "-" + DateTime.Now.ToString("yyyy.MM.dd.HH.mm.ss");
     }
-
+    
     public void OnClick_Start() {
         experiment.Start();
         audioStart.Play();
@@ -316,10 +321,10 @@ public class Technique {
 
     //  common
     public string method = "~";
-    protected Play play;
+    public Play play;
     
-    protected Technique(Play play) {
-        this.play = play;
+    public Technique() {
+        play = GameObject.Find("Play").GetComponent<Play>();
     }
 
     public virtual void Deconstruct() {
@@ -353,7 +358,7 @@ public class Technique {
 }
 
 class NaiveRay : Technique {
-    public NaiveRay(Play play) : base(play) {
+    public NaiveRay() : base() {
         method = "NaiveRay";
         play.visibilityRay = true;
     }
@@ -405,7 +410,7 @@ class BubbleRay : NaiveRay {
     GameObject bubble;
     LineRenderer fishPole;
 
-    public BubbleRay(Play play) : base(play) {
+    public BubbleRay() : base() {
         method = "HandDistance";
         bubble = GameObject.Find("Bubble Ray/Bubble");
         fishPole = GameObject.Find("Bubble Ray/Fish Pole").GetComponent<LineRenderer>();
