@@ -37,7 +37,7 @@ public class Menu : MonoBehaviour {
         //  initiate
         setting_BubbleRay = "Hand Distance";
         //setting_Technique = "Bubble Ray";
-        setting_Technique = "Heuristic Ray";
+        setting_Technique = "SQUAD Cone";
     }
     
     void Update() {
@@ -83,6 +83,9 @@ public class Menu : MonoBehaviour {
                     break;
                 case "Heuristic Ray":
                     play.ChangeTechnique<HeuristicRay>();
+                    break;
+                case "SQUAD Cone":
+                    play.ChangeTechnique<SQUADCone>();
                     break;
             }
         }
@@ -149,6 +152,11 @@ public class Menu : MonoBehaviour {
     public void OnClick_Technique_HeuristicRay() {
         string prevSetting_Technique = setting_Technique;
         setting_Technique = "Heuristic Ray";
+        change_Technique = (setting_Technique != prevSetting_Technique);
+    }
+    public void OnClick_Technique_SQUADCone() {
+        string prevSetting_Technique = setting_Technique;
+        setting_Technique = "SQUAD Cone";
         change_Technique = (setting_Technique != prevSetting_Technique);
     }
 }

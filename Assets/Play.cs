@@ -86,6 +86,10 @@ public class Play : MonoBehaviour {
         GoGo.hand.transform.localScale = new Vector3(1, 1, 1);
         GoGo.hand.SetActive(false);
 
+        NaiveCone.cone = GameObject.Find("Cue/Cone");
+        NaiveCone.cone.transform.SetParent(controller.transform);
+        NaiveCone.cone.transform.position = new Vector3(0, 0, 0);
+
         //  load task
         taskSelection.options.Clear();
         string[] taskNameList = Directory.GetFiles("Task/", "*.conf");
@@ -643,7 +647,7 @@ class BubbleRay : NaiveRay {
 class HeuristicRay : NaiveRay {
     public static GameObject fishPole;
     const float ANGLE_LIMIT = 0.2f;
-    const float ACCUMULATE_RATE = 0.01f;
+    const float ACCUMULATE_RATE = 0.05f;
     int n;
     float[] score;
 
@@ -679,6 +683,7 @@ class HeuristicRay : NaiveRay {
                 selectedObject = g;
             }
         }
+        DrawFishPole(fishPole, true, p, selectedObject.transform.position, v);
         return selectedObject;
     }
 }
@@ -765,3 +770,19 @@ class GoGo : Technique {
     }
 }
 
+class NaiveCone : Technique {
+    public static GameObject cone;
+
+    public NaiveCone() : base() {
+        cone.SetActive(true);
+    }
+
+    public override void Deconstruct() {
+        cone.SetActive(false);
+        base.Deconstruct();
+    }
+}
+
+class SQUADCone : NaiveCone {
+
+}
