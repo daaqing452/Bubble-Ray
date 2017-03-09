@@ -344,7 +344,14 @@ class Experiment {
 }
 
 public class Technique {
+    //  constant
     public const float EPS = 1e-5f;
+    public Vector3 POINT_HIDE = new Vector3(0, 0, -5);
+    public Quaternion QUETERNION_NULL = new Quaternion(1, 0, 0, 0);
+    public Vector3 UNIT_BALL = new Vector3(1, 1, 1);
+    public Vector3 UNIT_CIRCLE = new Vector3(1, 1, 0.01f);
+
+    //  main
     public static System.Random random = new System.Random((int)DateTime.Now.Ticks);
     public string method = "~";
     public Play play;
@@ -381,6 +388,31 @@ public class Technique {
             a[x] = t;
         }
         return a;
+    }
+    protected void DrawFishPole(GameObject fishPole, bool visible, Vector3 p, Vector3 q, Vector3 v) {
+        LineRenderer fishPoleRenderer = fishPole.GetComponent<LineRenderer>();
+        if (visible) {
+            float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
+            Vector3 r = p + v * t * 0.8f;
+            List<Vector3> bs = new List<Vector3>();
+            for (int i = 0; i <= 100; i++) {
+                float j = i / 100.0f;
+                Vector3 b = (1 - j) * (1 - j) * p + 2 * j * (1 - j) * r + j * j * q;
+                bs.Add(b);
+            }
+            fishPoleRenderer.SetPositions(bs.ToArray());
+            fishPoleRenderer.positionCount = bs.Count;
+        }
+        else {
+            fishPoleRenderer.positionCount = 0;
+        }
+    }
+    protected void DrawBubble(GameObject bubble, bool visible, Vector3 renderPoint, Quaternion renderRotation, Vector3 renderUnit, float range) {
+        float renderScale = range * 2;
+        Transform transformBubble = bubble.transform;
+        transformBubble.position = (visible) ? renderPoint : POINT_HIDE;
+        transformBubble.rotation = renderRotation;
+        transformBubble.localScale = renderUnit * ((visible) ? renderScale : 1);
     }
 }
 
@@ -431,13 +463,7 @@ class BubbleRay : NaiveRay {
     //  menu configuration
     public static bool visibilityBubble = true;
     public static bool visibilityFishPole = true;
-
-    //  constant
-    Vector3 POINT_HIDE = new Vector3(0, 0, -5);
-    Quaternion QUETERNION_NULL = new Quaternion(1, 0, 0, 0);
-    Vector3 UNIT_BALL = new Vector3(1, 1, 1);
-    Vector3 UNIT_CIRCLE = new Vector3(1, 1, 0.01f);
-
+    
     public BubbleRay() : base() {
         method = "Hand Distance";
         fishPole.SetActive(true);
@@ -608,49 +634,52 @@ class BubbleRay : NaiveRay {
                         }
                         break;*/
             }
-        DrawFishPole(p, selectedObject.transform.position, v);
-        DrawBubble(renderPoint, renderRotation, renderUnit, range);
+        DrawFishPole(fishPole, visibilityFishPole, p, selectedObject.transform.position, v);
+        DrawBubble(bubble, visibilityBubble, renderPoint, renderRotation, renderUnit, range);
         return selectedObject;
-    }
-
-    void DrawBubble(Vector3 renderPoint, Quaternion renderRotation, Vector3 renderUnit, float range) {
-        float renderScale = range * 2;
-        Transform transformBubble = bubble.transform;
-        transformBubble.position = (visibilityBubble) ? renderPoint : POINT_HIDE;
-        transformBubble.rotation = renderRotation;
-        transformBubble.localScale = renderUnit * ((visibilityBubble) ? renderScale : 1);
-    }
-
-    void DrawFishPole(Vector3 p, Vector3 q, Vector3 v) {
-        LineRenderer fishPoleRenderer = fishPole.GetComponent<LineRenderer>();
-        if (visibilityFishPole) {
-            float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
-            Vector3 r = p + v * t * 0.8f;
-            List<Vector3> bs = new List<Vector3>();
-            for (int i = 0; i <= 100; i++) {
-                float j = i / 100.0f;
-                Vector3 b = (1 - j) * (1 - j) * p + 2 * j * (1 - j) * r + j * j * q;
-                bs.Add(b);
-            }
-            fishPoleRenderer.SetPositions(bs.ToArray());
-            fishPoleRenderer.positionCount = bs.Count;
-        }
-        else {
-            fishPoleRenderer.positionCount = 0;
-        }
     }
 }
 
 class HeuristicRay : NaiveRay {
     public static GameObject fishPole;
+    const float ANGLE_LIMIT = 0.2f;
+    const float ACCUMULATE_RATE = 0.01f;
+    int n;
+    float[] score;
+
     public HeuristicRay() : base() {
         method = "Heuristic Ray";
         fishPole.SetActive(true);
+        n = play.playProps.Length;
+        score = new float[n];
     }
 
     public override void Deconstruct() {
         fishPole.SetActive(false);
         base.Deconstruct();
+    }
+
+    public override GameObject Select() {
+        Vector3 p = play.controller.transform.position;
+        Vector3 v = QuaternionToVector(play.controller.transform.rotation);
+        GameObject selectedObject = null;
+        float maxS = -1;
+        for (int i = 0; i < n; i++) {
+            GameObject g = play.playProps[i];
+            Vector3 q = g.transform.position;
+            Vector3 u = q - p;
+            Vector3 w = v.normalized * u.magnitude;
+            Vector3 s = p + w;
+            float alpha = Mathf.Atan((q - s).magnitude / u.magnitude);
+            float nowScore = Mathf.Max(1 - alpha / ANGLE_LIMIT, 0);
+            score[i] = score[i] * (1 - ACCUMULATE_RATE) + nowScore * ACCUMULATE_RATE;
+            Debug.Log(nowScore);
+            if (score[i] > maxS) {
+                maxS = score[i];
+                selectedObject = g;
+            }
+        }
+        return selectedObject;
     }
 }
 
@@ -688,21 +717,18 @@ class X3DBubbleCursor : Technique {
                 secD = Math.Min(secD, d);
             }
         }
-        float renderScale = Math.Min(minD + selectedObject.transform.localScale.x, secD - BUBBLE_SPLIT_GAP) * 2;
-        bubble.transform.position = cursor.transform.position;
-        bubble.transform.localScale = new Vector3(1, 1, 1) * renderScale;
-        bubble2.transform.position = selectedObject.transform.position;
-        bubble2.transform.localScale = selectedObject.transform.localScale * BUBBLE2_SCALE_RATIO;
+        float renderScale = Math.Min(minD + selectedObject.transform.localScale.x, secD - BUBBLE_SPLIT_GAP);
+        DrawBubble(bubble, true, cursor.transform.position, QUETERNION_NULL, UNIT_BALL, renderScale);
+        DrawBubble(bubble2, true, selectedObject.transform.position, QUETERNION_NULL, UNIT_BALL, selectedObject.transform.localScale.x / 2 * BUBBLE2_SCALE_RATIO);
         return selectedObject;
     }
 }
 
 class GoGo : Technique {
+    public static GameObject hand;
     const float LINEAR_RANGE = 0.3f;
     const float NONLINEAR_RATIO = 100.0f;
     const float TOUCH_RANGE = 0.2f;
-
-    public static GameObject hand;
 
     public GoGo() : base() {
         hand.SetActive(true);
