@@ -118,12 +118,10 @@ public class Play : MonoBehaviour {
 
         //  user event
         if (ViveInput.GetPressDown(handRole, ControllerButton.FullTrigger)) {
-            if (experiment != null) {
-                int status = experiment.Select(selectedObject);
-                if (status == 1) {
-                    audioSelectCorrect.Play();
-                } else if (status == 0) {
-                    audioSelectWrong.Play();
+            if (technique.Trigger()) {
+                if (experiment != null) {
+                    int status = experiment.Select(selectedObject);
+                    if (status == 1) audioSelectCorrect.Play(); else if (status == 0) audioSelectWrong.Play();
                 }
             }
         }
@@ -134,9 +132,9 @@ public class Play : MonoBehaviour {
         //  color
         foreach (GameObject g in playProps) {
             if (g == selectedObject && g == experiment.targetObject) {
-                g.GetComponent<Renderer>().material = Resources.Load("Dark Indigo") as Material;/*
+                g.GetComponent<Renderer>().material = Resources.Load("Dark Indigo") as Material;
             } else if (g == selectedObject) {
-                g.GetComponent<Renderer>().material = Resources.Load("Dark Green") as Material;*/
+                g.GetComponent<Renderer>().material = Resources.Load("Dark Green") as Material;
             } else if (g == experiment.targetObject) {
                 g.GetComponent<Renderer>().material = Resources.Load("Dark Blue") as Material;
             } else {
@@ -349,6 +347,7 @@ class Experiment {
 
 public class Technique {
     //  constant
+    public static float PI = Mathf.Acos(-1);
     public const float EPS = 1e-5f;
     public Vector3 POINT_HIDE = new Vector3(0, 0, -5);
     public Quaternion QUETERNION_NULL = new Quaternion(1, 0, 0, 0);
@@ -371,13 +370,29 @@ public class Technique {
     public virtual void Update() {
 
     }
+    public virtual bool Trigger() {
+        return true;
+    }
 
-    public static Vector3 QuaternionToVector(Quaternion q) {
-        Vector3 r = q.eulerAngles / 180.0f * Mathf.Acos(-1);
-        float dx = Mathf.Cos(r.x) * Mathf.Sin(r.y);
-        float dy = -Mathf.Sin(r.x);
-        float dz = Mathf.Cos(r.x) * Mathf.Cos(r.y);
-        return new Vector3(dx, dy, dz);
+    public static float Sqr(float x) {
+        return x * x;
+    }
+    public static Vector3 Quaternion2Vector(Quaternion q) {
+        Vector3 r = q.eulerAngles / 180.0f * PI;
+        Vector3 v;
+        v.x = Mathf.Cos(r.x) * Mathf.Sin(r.y);
+        v.y = -Mathf.Sin(r.x);
+        v.z = Mathf.Cos(r.x) * Mathf.Cos(r.y);
+        return v;
+    }
+    public static Quaternion Vector2Quaternion(Vector3 v) {
+        v = v.normalized;
+        Vector3 r;
+        r.x = -Mathf.Asin(v.y);
+        r.y = Mathf.Asin(v.x / Mathf.Cos(r.x));
+        r.z = 0;
+        r = r / PI * 180.0f;
+        return Quaternion.Euler(r.x, r.y, r.z);
     }
     public static string TimeString() {
         return DateTime.Now.ToString("HH:mm:ss.ffffff");
@@ -411,8 +426,8 @@ public class Technique {
             fishPoleRenderer.positionCount = 0;
         }
     }
-    protected void DrawBubble(GameObject bubble, bool visible, Vector3 renderPoint, Quaternion renderRotation, Vector3 renderUnit, float range) {
-        float renderScale = range * 2;
+    protected void DrawBubble(GameObject bubble, bool visible, Vector3 renderPoint, Quaternion renderRotation, Vector3 renderUnit, float renderScale) {
+        renderScale *= 2;
         Transform transformBubble = bubble.transform;
         transformBubble.position = (visible) ? renderPoint : POINT_HIDE;
         transformBubble.rotation = renderRotation;
@@ -436,7 +451,7 @@ class NaiveRay : Technique {
     public override GameObject Select() {
         //  source geomatric data
         Vector3 p = play.controller.transform.position;
-        Vector3 v = QuaternionToVector(play.controller.transform.rotation);
+        Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
         Vector3 e = play.cameraHead.transform.position;
         //  find selected object
         GameObject selectedObject = null;
@@ -483,7 +498,7 @@ class BubbleRay : NaiveRay {
     public override GameObject Select() {
         //  source geomatric data
         Vector3 p = play.controller.transform.position;
-        Vector3 v = QuaternionToVector(play.controller.transform.rotation);
+        Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
         Vector3 e = play.cameraHead.transform.position;
 
         //  initiate
@@ -491,7 +506,7 @@ class BubbleRay : NaiveRay {
         Vector3 renderPoint = POINT_HIDE;
         Quaternion renderRotation = QUETERNION_NULL;
         Vector3 renderUnit = UNIT_CIRCLE;
-        float range = 0.0f;
+        float renderScale = 0.0f;
 
         //  intersect
         selectedObject = base.Select();
@@ -500,6 +515,47 @@ class BubbleRay : NaiveRay {
         float minF = 1e20f;
         if (selectedObject == null)
             switch (method) {
+                // dot(p+vt-q, v)=0
+                case "Hand Distance":
+                    foreach (GameObject g in play.playProps) {
+                        Vector3 q = g.transform.position;
+                        if (Mathf.Abs(v.x + v.y + v.z) < EPS) continue;
+                        float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (Sqr(v.x) + Sqr(v.y) + Sqr(v.z));
+                        Vector3 i = p + v * t;
+                        float f = (q - i).magnitude - g.transform.localScale.x / 2;
+                        if (f < minF) {
+                            renderPoint = i;
+                            renderScale = f;
+                            minF = f;
+                            selectedObject = g;
+                        }
+                    }
+                    renderUnit = UNIT_BALL;
+                    break;
+               
+                case "Hand Angular":
+                    float maxDepth = 100;
+                    foreach (GameObject g in play.playProps) maxDepth = Mathf.Max(maxDepth, (g.transform.position - p).magnitude + g.transform.localScale.x);
+                    foreach (GameObject g in play.playProps) {
+                        Vector3 q = g.transform.position;
+                        if (Mathf.Abs(v.x + v.y + v.z) < EPS) continue;
+                        float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (Sqr(v.x) + Sqr(v.y) + Sqr(v.z));
+                        Vector3 i = p + v * t;
+                        float r = g.transform.localScale.x / 2;
+                        float f = Mathf.Atan(((i - q).magnitude -r) / (i - p).magnitude);
+                        if (f < minF) {
+                            Vector3 j = e + (q - e).normalized * maxDepth;
+                            Vector3 k = p + v.normalized * maxDepth;
+                            renderPoint = k;
+                            renderScale = (j - k).magnitude - r / (q - e).magnitude * maxDepth;
+                            minF = f;
+                            selectedObject = g;
+                        }
+                    }
+                    renderRotation = Vector2Quaternion(renderPoint - e);
+                    break;
+
+                /*
                 case "Back Plane":
                     float D = -1e20f;
                     foreach (GameObject g in play.playProps) {
@@ -554,92 +610,56 @@ class BubbleRay : NaiveRay {
                     }
                     renderRotation = play.controller.transform.rotation;
                     break;
-
-                case "Hand Distance":
+    
+                case "Dynamic Depth Plane":
                     foreach (GameObject g in play.playProps) {
+                        if (Mathf.Abs(v.z) < EPS) continue;
                         Vector3 q = g.transform.position;
-                        if (Mathf.Abs(v.x + v.y + v.z) < EPS) continue;
-                        float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (v.x * v.x + v.y * v.y + v.z * v.z);
+                        float t = (q.z - p.z) / v.z;
                         Vector3 i = p + v * t;
                         float f = (q - i).magnitude - g.transform.localScale.x / 2;
                         if (f < minF) {
                             renderPoint = i;
-                            range = f;
+                            range1 = range0;
+                            range0 = f;
                             minF = f;
                             selectedObject = g;
+                        } else {
+                            range1 = Mathf.Min(range1, f);
                         }
                     }
-                    renderUnit = UNIT_BALL;
-                    renderRotation = play.controller.transform.rotation;
                     break;
 
-                case "Hand Angular":
+                case "Dynamic Depth Sphere":
                     foreach (GameObject g in play.playProps) {
                         Vector3 q = g.transform.position;
-                        Vector3 u = q - p;
-                        Vector3 w = v.normalized * u.magnitude;
-                        Vector3 s = p + w;
-                        float d = (q - s).magnitude - g.transform.localScale.x / 2;
-                        float f = d / u.magnitude;
+                        Vector3 u = q - e;
+                        float a = v.x * v.x + v.y * v.y + v.z * v.z;
+                        float b = 2 * ((p.x - e.x) * v.x + (p.y - e.y) * v.y + (p.z - e.z) * v.z);
+                        float c = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) + (p.z - e.z) * (p.z - e.z) - u.magnitude * u.magnitude;
+                        if (b * b - 4 * a * c < 0) continue;
+                        if (Mathf.Abs(a) < EPS) continue;
+                        float t = (-b + Mathf.Sqrt(b * b - 4 * a * c)) / (2 * a);
+                        Vector3 i = p + v * t;
+                        Vector3 w = i - e;
+                        float alpha = Mathf.Acos((u.x * w.x + u.y * w.y + u.z * w.z) / u.magnitude / w.magnitude);
+                        float d = (q - i).magnitude - g.transform.localScale.x / 2;
+                        float f = alpha * u.magnitude;
                         if (f < minF) {
-                            renderPoint = s;
-                            range = d;
+                            renderPoint = i;
+                            range1 = range0;
+                            range0 = d;
                             minF = f;
                             selectedObject = g;
                         }
+                        else {
+                            range1 = Mathf.Min(range1, d);
+                        }
                     }
-                    renderRotation = play.controller.transform.rotation;
-                    break;
-
-                    /*case "Dynamic Depth Plane":
-                        foreach (GameObject g in play.playProps) {
-                            if (Mathf.Abs(v.z) < EPS) continue;
-                            Vector3 q = g.transform.position;
-                            float t = (q.z - p.z) / v.z;
-                            Vector3 i = p + v * t;
-                            float f = (q - i).magnitude - g.transform.localScale.x / 2;
-                            if (f < minF) {
-                                renderPoint = i;
-                                range1 = range0;
-                                range0 = f;
-                                minF = f;
-                                selectedObject = g;
-                            } else {
-                                range1 = Mathf.Min(range1, f);
-                            }
-                        }
-                        break;
-
-                    case "Dynamic Depth Sphere":
-                        foreach (GameObject g in play.playProps) {
-                            Vector3 q = g.transform.position;
-                            Vector3 u = q - e;
-                            float a = v.x * v.x + v.y * v.y + v.z * v.z;
-                            float b = 2 * ((p.x - e.x) * v.x + (p.y - e.y) * v.y + (p.z - e.z) * v.z);
-                            float c = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) + (p.z - e.z) * (p.z - e.z) - u.magnitude * u.magnitude;
-                            if (b * b - 4 * a * c < 0) continue;
-                            if (Mathf.Abs(a) < EPS) continue;
-                            float t = (-b + Mathf.Sqrt(b * b - 4 * a * c)) / (2 * a);
-                            Vector3 i = p + v * t;
-                            Vector3 w = i - e;
-                            float alpha = Mathf.Acos((u.x * w.x + u.y * w.y + u.z * w.z) / u.magnitude / w.magnitude);
-                            float d = (q - i).magnitude - g.transform.localScale.x / 2;
-                            float f = alpha * u.magnitude;
-                            if (f < minF) {
-                                renderPoint = i;
-                                range1 = range0;
-                                range0 = d;
-                                minF = f;
-                                selectedObject = g;
-                            }
-                            else {
-                                range1 = Mathf.Min(range1, d);
-                            }
-                        }
-                        break;*/
+                    break;*/
             }
         DrawFishPole(fishPole, visibilityFishPole, p, selectedObject.transform.position, v);
-        DrawBubble(bubble, visibilityBubble, renderPoint, renderRotation, renderUnit, range);
+        DrawBubble(bubble, visibilityBubble, renderPoint, renderRotation, renderUnit, renderScale);
         return selectedObject;
     }
 }
@@ -665,7 +685,7 @@ class HeuristicRay : NaiveRay {
 
     public override GameObject Select() {
         Vector3 p = play.controller.transform.position;
-        Vector3 v = QuaternionToVector(play.controller.transform.rotation);
+        Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
         GameObject selectedObject = null;
         float maxS = -1;
         for (int i = 0; i < n; i++) {
@@ -784,5 +804,41 @@ class NaiveCone : Technique {
 }
 
 class SQUADCone : NaiveCone {
+    const float ANGLE_CONE = 0.13f;
+    int step = 0;
+    List<GameObject> intersectedObjects = new List<GameObject>();
+    public SQUADCone() : base() {
 
+    }
+
+    public override GameObject Select() {
+        if (step == 0) {
+            Vector3 p = play.controller.transform.position;
+            Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
+            intersectedObjects.Clear();
+            foreach (GameObject g in play.playProps) {
+                Vector3 q = g.transform.position;
+                if (Mathf.Abs(v.x + v.y + v.z) < EPS) continue;
+                float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (Sqr(v.x) + Sqr(v.y) + Sqr(v.z));
+                Vector3 i = p + v * t;
+                float r = g.transform.localScale.x / 2;
+                float angle = Mathf.Atan(((i - q).magnitude - r) / (i - p).magnitude);
+                if (angle > ANGLE_CONE) continue;
+                intersectedObjects.Add(g);
+            }
+        } else if (step == 1) {
+            return null;
+        }
+        return null;
+    }
+
+    public override bool Trigger() {
+        if (step == 0) {
+            //  
+            step = 1;
+        } else if (step == 1) {
+            step = 0;
+        }
+        return true;
+    }
 }
