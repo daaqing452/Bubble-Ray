@@ -64,10 +64,8 @@ public class Play : MonoBehaviour {
 
         BubbleRay.bubble = GameObject.Find("Cue/Bubble");
         BubbleRay.fishPole = GameObject.Find("Cue/Fish Pole");
-
-        HeuristicRay.fishPole = GameObject.Find("Cue/Fish Pole");
-        HeuristicRay.fishPole.SetActive(false);
-
+        BubbleRay.fishPole.SetActive(false);
+        
         X3DBubbleCursor.cursor = GameObject.Find("Cue/Cursor");
         X3DBubbleCursor.cursor.transform.SetParent(controller.transform);
         X3DBubbleCursor.cursor.transform.localPosition = new Vector3(0, 0, 0.1f);
@@ -89,6 +87,11 @@ public class Play : MonoBehaviour {
         NaiveCone.cone = GameObject.Find("Cue/Cone");
         NaiveCone.cone.transform.SetParent(controller.transform);
         NaiveCone.cone.transform.position = new Vector3(0, 0, 0);
+        NaiveCone.cone.SetActive(false);
+
+        SQUADCone.squad = GameObject.Find("Cue/SQUAD");
+        SQUADCone.cursor = GameObject.Find("Cue/SQUAD/Cursor");
+        SQUADCone.squad.SetActive(false);
 
         //  load task
         taskSelection.options.Clear();
@@ -132,17 +135,17 @@ public class Play : MonoBehaviour {
         //  color
         foreach (GameObject g in playProps) {
             if (g == selectedObject && g == experiment.targetObject) {
-                g.GetComponent<Renderer>().material = Resources.Load("Dark Indigo") as Material;
-            } else if (g == selectedObject) {
-                g.GetComponent<Renderer>().material = Resources.Load("Dark Green") as Material;
+                ChangeColor(g, Color.cyan);
             } else if (g == experiment.targetObject) {
-                g.GetComponent<Renderer>().material = Resources.Load("Dark Blue") as Material;
+                ChangeColor(g, Color.blue);
+            } else if (g == selectedObject && technique.selectAndColor) {
+                ChangeColor(g, Color.green);
             } else {
-                g.GetComponent<Renderer>().material.color = Color.white;
+                ChangeColor(g, Color.white);
             }
         }
     }
-
+    
     public void ChangeTechnique<T>() where T : Technique, new() {
         if (technique != null) technique.Deconstruct();
         technique = new T();
@@ -152,6 +155,12 @@ public class Play : MonoBehaviour {
         return userName.text + "-" + experiment.task + "-" + technique.method.Replace(" ", "") + "-" + DateTime.Now.ToString("yyyy.MM.dd.HH.mm.ss");
     }
     
+    public static void ChangeColor(GameObject g, Color c, float a = -1) {
+        if (a == -1) a = g.GetComponent<Renderer>().material.color.a;
+        Color c1 = new Color(c.r, c.g, c.b, a);
+        g.GetComponent<Renderer>().material.color = c1;
+    }
+
     public void OnClick_Start() {
         experiment.Start();
         audioStart.Play();
@@ -262,6 +271,7 @@ class Experiment {
                     newGameObject = GameObject.CreatePrimitive(primitiveType);
                     newGameObject.transform.parent = GameObject.Find("Play").transform;
                     newGameObject.tag = Play.TAG_PLAY_PROP;
+                    newGameObject.GetComponent<Renderer>().material = Resources.Load("Trans White") as Material;
                     selectable = 1;
                     break;
                 case "name":
@@ -312,9 +322,6 @@ class Experiment {
                 }
                 foreach (int j in ra) uniformObjects.Add(selectableObjects[j]);
             }
-            /*string ss = "";
-            foreach (GameObject g in uniformObjects) ss += g.name[8];
-            Debug.Log(ss);*/
         }
     }
 
@@ -357,6 +364,7 @@ public class Technique {
     //  main
     public static System.Random random = new System.Random((int)DateTime.Now.Ticks);
     public string method = "~";
+    public bool selectAndColor = false;
     public Play play;
     
     public Technique() {
@@ -665,7 +673,6 @@ class BubbleRay : NaiveRay {
 }
 
 class HeuristicRay : NaiveRay {
-    public static GameObject fishPole;
     const float ANGLE_LIMIT = 0.2f;
     const float ACCUMULATE_RATE = 0.05f;
     int n;
@@ -673,14 +680,9 @@ class HeuristicRay : NaiveRay {
 
     public HeuristicRay() : base() {
         method = "Heuristic Ray";
-        fishPole.SetActive(true);
+        selectAndColor = true;
         n = play.playProps.Length;
         score = new float[n];
-    }
-
-    public override void Deconstruct() {
-        fishPole.SetActive(false);
-        base.Deconstruct();
     }
 
     public override GameObject Select() {
@@ -703,7 +705,6 @@ class HeuristicRay : NaiveRay {
                 selectedObject = g;
             }
         }
-        DrawFishPole(fishPole, true, p, selectedObject.transform.position, v);
         return selectedObject;
     }
 }
@@ -804,11 +805,15 @@ class NaiveCone : Technique {
 }
 
 class SQUADCone : NaiveCone {
+    public static GameObject squad;
+    public static GameObject cursor;
     const float ANGLE_CONE = 0.13f;
     int step = 0;
     List<GameObject> intersectedObjects = new List<GameObject>();
-    public SQUADCone() : base() {
 
+    public override void Deconstruct() {
+        squad.SetActive(false);
+        base.Deconstruct();
     }
 
     public override GameObject Select() {
@@ -832,11 +837,26 @@ class SQUADCone : NaiveCone {
         return null;
     }
 
+    public override void Update() {
+        if (step == 1) {
+            Vector3 p = play.controller.transform.position;
+            Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
+            Vector3 o = play.cameraHead.transform.position;
+            Vector3 u = Quaternion2Vector(play.cameraHead.transform.rotation);
+            Vector3 q = o + u.normalized * 500;
+            float t = ((q.x - p.x) * u.x + (q.y - p.y) * u.y + (q.z - p.z) * u.z) / (v.x * u.x + v.y * u.y + v.z * u.z);
+            cursor.transform.position = p + v * t;
+        }
+    }
+
     public override bool Trigger() {
         if (step == 0) {
-            //  
+            squad.SetActive(true);
+            foreach (GameObject g in play.playProps) Play.ChangeColor(g, g.GetComponent<Renderer>().material.color, 0.3f);
             step = 1;
         } else if (step == 1) {
+            squad.SetActive(false);
+            foreach (GameObject g in play.playProps) Play.ChangeColor(g, g.GetComponent<Renderer>().material.color, 1.0f);
             step = 0;
         }
         return true;
