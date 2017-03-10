@@ -3,7 +3,7 @@ import math
 
 PI = math.acos(-1)
 cnt = 0
-p = (0.00, 0.17, 0.00)
+p = (0.12, 0.13, 0.11)
 f = 0
 
 def write(x, y, z, s):
@@ -17,11 +17,12 @@ def write(x, y, z, s):
 	cnt += 1
 
 def cubic():
-	f = open('cubic5x5.conf', 'w')
-	for x in range(-3, 6, 2):
-		for y in range(-1, 8, 2):
-			for z in range(4, 13, 2):
-				write(x, y, z, 0.3)
+	global f
+	f = open('near-cubic-7x7x7.conf', 'w')
+	for x in range(-3, 4, 1):
+		for y in range(-3, 4, 1):
+			for z in range(5, 12, 1):
+				write(x * 0.03, y * 0.03, z * 0.03, 0.01)
 	f.close()
 def near():
 	global f
@@ -106,4 +107,4 @@ def occlusion():
 		f.close()
 
 
-near()
+cubic()

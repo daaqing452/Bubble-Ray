@@ -112,29 +112,26 @@ public class Play : MonoBehaviour {
         playProps = GameObject.FindGameObjectsWithTag(TAG_PLAY_PROP);
         technique.Update();
 
+        //  user event
+        bool experimentCheck = false;
+        if (ViveInput.GetPressDown(handRole, ControllerButton.FullTrigger)) experimentCheck = technique.Trigger();
+        if (ViveInput.GetPressDown(handRole, ControllerButton.Menu)) OnClick_Start();
+        
+        //  find current selected object
+        List<GameObject> selectedObjects = technique.Select();
+
+        //  experiment check
+        if (experimentCheck && experiment != null) {
+            GameObject selectedObject = (selectedObjects.Count == 0) ? null : selectedObjects[0];
+            int status = experiment.Select(selectedObject);
+            if (status == 1) audioSelectCorrect.Play(); else if (status == 0) audioSelectWrong.Play();
+        }
+
         //  accumulate movement, show sign
         if (experiment != null) {
             experiment.ControllerMove(controller.transform.position);
             signExperimentStart.SetActive(experiment.startSignal);
             signExperimentCompleted.SetActive(experiment.completed);
-        }
-
-        //  find current selected object
-        List<GameObject> selectedObjects = technique.Select(); 
-
-        //  user event
-        if (ViveInput.GetPressDown(handRole, ControllerButton.FullTrigger)) {
-            if (technique.Trigger()) {
-                if (experiment != null) {
-                    //selectedObjects = technique.Select();
-                    GameObject selectedObject = (selectedObjects.Count == 0) ? null : selectedObjects[0];
-                    int status = experiment.Select(selectedObject);
-                    if (status == 1) audioSelectCorrect.Play(); else if (status == 0) audioSelectWrong.Play();
-                }
-            }
-        }
-        if (ViveInput.GetPressDown(handRole, ControllerButton.Menu)) {
-            OnClick_Start();
         }
         
         //  color
@@ -730,16 +727,21 @@ class SQUADCone : NaiveCone {
     public static GameObject cursor;
     const float ANGLE_CONE = 0.13f;
     const string OBJECT_ON_SQUAD_TAG = "on squad";
-    const float OBJECT_ON_SQUAD_SCALE = 80;
-    const float OBJECT_ON_SQUAD_MARGIN = 160;
-    const float OBJECT_ON_SQUAD_DEPTH = 950;
+    const float OBJECT_ON_SQUAD_SCALE = 40;
+    const float OBJECT_ON_SQUAD_MARGIN = 50;
+    const float OBJECT_ON_SQUAD_DEPTH = 500;
 
     int step = 0;
-    int updateSquad = 0;
+    bool updateSquad = false;
     List<GameObject> selectedObjects = new List<GameObject>();
 
     public SQUADCone() {
         selectAndColor = true;
+
+        for (int i = 0; i < 20; i++) {
+            Vector3 a = GeneratePosition(0, i);
+            Debug.Log(a.x + " " + a.y);
+        }
     }
 
     public override void Deconstruct() {
@@ -748,7 +750,6 @@ class SQUADCone : NaiveCone {
     }
 
     public override List<GameObject> Select() {
-        if (updateSquad == 1) updateSquad = 2;
         if (step == 0) {
             selectedObjects.Clear();
             Vector3 p = play.controller.transform.position;
@@ -764,13 +765,21 @@ class SQUADCone : NaiveCone {
                 selectedObjects.Add(g);
             }
             return selectedObjects;
+        } else if (step == 1) {
+            return new List<GameObject>();
+        } else if (step == 2) {
+            step = 0;
+            return selectedObjects;
         }
         return new List<GameObject>();
     }
 
     public override void Update() {
         if (step != 1) return;
-        if (updateSquad == 2) { DrawSquad(); updateSquad = 0; }
+        if (updateSquad) {
+            DrawSquad();
+            updateSquad = false;
+        }
         Vector3 p = play.controller.transform.position;
         Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
         Vector3 o = play.cameraHead.transform.position;
@@ -784,7 +793,7 @@ class SQUADCone : NaiveCone {
         if (step == 0) {
             squad.SetActive(true);
             foreach (GameObject g in play.playProps) Play.ChangeColor(g, g, 0.1f);
-            updateSquad = 1;
+            updateSquad = true;
             step = 1;
             return false;
         } else if (step == 1) {
@@ -796,9 +805,11 @@ class SQUADCone : NaiveCone {
             if (selectedObjects.Count == 1) {
                 squad.SetActive(false);
                 foreach (GameObject g in play.playProps) Play.ChangeColor(g, g, 1.0f);
-                step = 0;
+                step = 2;
+                return true;
             } else {
-
+                updateSquad = true;
+                return false;
             }
         }
         return false;
@@ -823,7 +834,7 @@ class SQUADCone : NaiveCone {
 
     Vector3 GeneratePosition(int group, int index) {
         index++;
-        int row = (int)(Math.Sqrt(index) + 1e-10);
+        int row = (int)(Math.Sqrt(index) - 1e-10) + 1;
         int column = Sqr(row) - index - (row - 1);
         switch (group) {
             case 0: return new Vector3(-column, row, 0);
