@@ -32,7 +32,6 @@ public class Play : MonoBehaviour {
     public AudioSource audioComplete;
 
     //  method
-    GameObject selectedObject;
     Experiment experiment = null;
     public Technique technique = null;
     
@@ -110,7 +109,8 @@ public class Play : MonoBehaviour {
         //  find current selected object
         playProps = GameObject.FindGameObjectsWithTag(TAG_PLAY_PROP);
         technique.Update();
-        selectedObject = technique.Select();
+        List<GameObject> selectedObjects = technique.Select();
+        GameObject selectedObject = (selectedObjects.Count == 0) ? null : selectedObjects[0];
 
         //  accumulate movement, show sign
         if (experiment != null) {
@@ -131,14 +131,14 @@ public class Play : MonoBehaviour {
         if (ViveInput.GetPressDown(handRole, ControllerButton.Menu)) {
             OnClick_Start();
         }
-
+        
         //  color
         foreach (GameObject g in playProps) {
-            if (g == selectedObject && g == experiment.targetObject) {
+            if (selectedObjects.Contains(g) && g == experiment.targetObject) {
                 ChangeColor(g, Color.cyan);
             } else if (g == experiment.targetObject) {
                 ChangeColor(g, Color.blue);
-            } else if (g == selectedObject && technique.selectAndColor) {
+            } else if (selectedObjects.Contains(g) && technique.selectAndColor) {
                 ChangeColor(g, Color.green);
             } else {
                 ChangeColor(g, Color.white);
@@ -372,8 +372,8 @@ public class Technique {
     }
     public virtual void Deconstruct() {
     }
-    public virtual GameObject Select() {
-        return null;
+    public virtual List<GameObject> Select() {
+        return new List<GameObject>();
     }
     public virtual void Update() {
 
@@ -456,7 +456,7 @@ class NaiveRay : Technique {
         base.Deconstruct();
     }
 
-    public override GameObject Select() {
+    public override List<GameObject> Select() {
         //  source geomatric data
         Vector3 p = play.controller.transform.position;
         Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
@@ -479,7 +479,9 @@ class NaiveRay : Technique {
                 }
             }
         }
-        return selectedObject;
+        List<GameObject> selectedObjects = new List<GameObject>();
+        if (selectedObject != null) selectedObjects.Add(selectedObject);
+        return selectedObjects;
     }
 }
 
@@ -503,7 +505,7 @@ class BubbleRay : NaiveRay {
         base.Deconstruct();
     }
 
-    public override GameObject Select() {
+    public override List<GameObject> Select() {
         //  source geomatric data
         Vector3 p = play.controller.transform.position;
         Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
@@ -517,11 +519,13 @@ class BubbleRay : NaiveRay {
         float renderScale = 0.0f;
 
         //  intersect
-        selectedObject = base.Select();
+        List<GameObject> selectedObjects = base.Select();
 
         //  find minimum distance
         float minF = 1e20f;
-        if (selectedObject == null)
+        if (selectedObjects.Count > 0) {
+            selectedObject = selectedObjects[0];
+        } else {
             switch (method) {
                 // dot(p+vt-q, v)=0
                 case "Hand Distance":
@@ -540,7 +544,7 @@ class BubbleRay : NaiveRay {
                     }
                     renderUnit = UNIT_BALL;
                     break;
-               
+
                 case "Hand Angular":
                     float maxDepth = 100;
                     foreach (GameObject g in play.playProps) maxDepth = Mathf.Max(maxDepth, (g.transform.position - p).magnitude + g.transform.localScale.x);
@@ -550,7 +554,7 @@ class BubbleRay : NaiveRay {
                         float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (Sqr(v.x) + Sqr(v.y) + Sqr(v.z));
                         Vector3 i = p + v * t;
                         float r = g.transform.localScale.x / 2;
-                        float f = Mathf.Atan(((i - q).magnitude -r) / (i - p).magnitude);
+                        float f = Mathf.Atan(((i - q).magnitude - r) / (i - p).magnitude);
                         if (f < minF) {
                             Vector3 j = e + (q - e).normalized * maxDepth;
                             Vector3 k = p + v.normalized * maxDepth;
@@ -562,113 +566,16 @@ class BubbleRay : NaiveRay {
                     }
                     renderRotation = Vector2Quaternion(renderPoint - e);
                     break;
-
-                /*
-                case "Back Plane":
-                    float D = -1e20f;
-                    foreach (GameObject g in play.playProps) {
-                        Vector3 q = g.transform.position;
-                        D = Mathf.Max(D, q.z + g.transform.localScale.x / 2);
-                    }
-                    foreach (GameObject g in play.playProps) {
-                        if (Mathf.Abs(v.z) < EPS) continue;
-                        Vector3 q = g.transform.position;
-                        Vector3 qq = e + (q - e) / (q.z - e.z) * D;
-                        float t = (D - p.z) / v.z;
-                        Vector3 i = p + v * t;
-                        float ShadowScale = g.transform.localScale.x / (q.z - e.z) * D;
-                        float f = (qq - i).magnitude - ShadowScale / 2;
-                        if (f < minF) {
-                            renderPoint = i;
-                            range = f;
-                            minF = f;
-                            selectedObject = g;
-                        }
-                    }
-                    break;
-
+                /*case "Back Plane":
                 case "Back Sphere":
-                    float R = -1e20f;
-                    foreach (GameObject g in play.playProps) {
-                        Vector3 q = g.transform.position;
-                        R = Mathf.Max(R, (q - e).magnitude + g.transform.localScale.x / 2);
-                    }
-                    foreach (GameObject g in play.playProps) {
-                        Vector3 q = g.transform.position;
-                        Vector3 qq = e + (q - e).normalized * R;
-                        Vector3 u = qq - e;
-                        float a = v.x * v.x + v.y * v.y + v.z * v.z;
-                        float b = 2 * ((p.x - e.x) * v.x + (p.y - e.y) * v.y + (p.z - e.z) * v.z);
-                        float c = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) + (p.z - e.z) * (p.z - e.z) - u.magnitude * u.magnitude;
-                        if (b * b - 4 * a * c < 0) continue;
-                        if (Mathf.Abs(a) < EPS) continue;
-                        float t = (-b + Mathf.Sqrt(b * b - 4 * a * c)) / (2 * a);
-                        Vector3 i = p + v * t;
-                        Vector3 w = i - e;
-                        float alpha = Mathf.Acos((u.x * w.x + u.y * w.y + u.z * w.z) / u.magnitude / w.magnitude);
-                        float shadowScale = g.transform.localScale.x / (q - e).magnitude * R;
-                        float d = (qq - i).magnitude - shadowScale / 2;
-                        float f = alpha * u.magnitude;
-                        if (f < minF) {
-                            renderPoint = i;
-                            range = d;
-                            minF = f;
-                            selectedObject = g;
-                        }
-                    }
-                    renderRotation = play.controller.transform.rotation;
-                    break;
-    
                 case "Dynamic Depth Plane":
-                    foreach (GameObject g in play.playProps) {
-                        if (Mathf.Abs(v.z) < EPS) continue;
-                        Vector3 q = g.transform.position;
-                        float t = (q.z - p.z) / v.z;
-                        Vector3 i = p + v * t;
-                        float f = (q - i).magnitude - g.transform.localScale.x / 2;
-                        if (f < minF) {
-                            renderPoint = i;
-                            range1 = range0;
-                            range0 = f;
-                            minF = f;
-                            selectedObject = g;
-                        } else {
-                            range1 = Mathf.Min(range1, f);
-                        }
-                    }
-                    break;
-
-                case "Dynamic Depth Sphere":
-                    foreach (GameObject g in play.playProps) {
-                        Vector3 q = g.transform.position;
-                        Vector3 u = q - e;
-                        float a = v.x * v.x + v.y * v.y + v.z * v.z;
-                        float b = 2 * ((p.x - e.x) * v.x + (p.y - e.y) * v.y + (p.z - e.z) * v.z);
-                        float c = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) + (p.z - e.z) * (p.z - e.z) - u.magnitude * u.magnitude;
-                        if (b * b - 4 * a * c < 0) continue;
-                        if (Mathf.Abs(a) < EPS) continue;
-                        float t = (-b + Mathf.Sqrt(b * b - 4 * a * c)) / (2 * a);
-                        Vector3 i = p + v * t;
-                        Vector3 w = i - e;
-                        float alpha = Mathf.Acos((u.x * w.x + u.y * w.y + u.z * w.z) / u.magnitude / w.magnitude);
-                        float d = (q - i).magnitude - g.transform.localScale.x / 2;
-                        float f = alpha * u.magnitude;
-                        if (f < minF) {
-                            renderPoint = i;
-                            range1 = range0;
-                            range0 = d;
-                            minF = f;
-                            selectedObject = g;
-                        }
-                        else {
-                            range1 = Mathf.Min(range1, d);
-                        }
-                    }
-                    break;*/
+                case "Dynamic Depth Sphere":*/
             }
+            selectedObjects.Add(selectedObject);
+        }
         DrawFishPole(fishPole, visibilityFishPole, p, selectedObject.transform.position, v);
         DrawBubble(bubble, visibilityBubble, renderPoint, renderRotation, renderUnit, renderScale);
-        return selectedObject;
+        return selectedObjects;
     }
 }
 
@@ -685,7 +592,7 @@ class HeuristicRay : NaiveRay {
         score = new float[n];
     }
 
-    public override GameObject Select() {
+    public override List<GameObject> Select() {
         Vector3 p = play.controller.transform.position;
         Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
         GameObject selectedObject = null;
@@ -699,13 +606,14 @@ class HeuristicRay : NaiveRay {
             float alpha = Mathf.Atan((q - s).magnitude / u.magnitude);
             float nowScore = Mathf.Max(1 - alpha / ANGLE_LIMIT, 0);
             score[i] = score[i] * (1 - ACCUMULATE_RATE) + nowScore * ACCUMULATE_RATE;
-            Debug.Log(nowScore);
             if (score[i] > maxS) {
                 maxS = score[i];
                 selectedObject = g;
             }
         }
-        return selectedObject;
+        List<GameObject> selectedObjects = new List<GameObject>();
+        selectedObjects.Add(selectedObject);
+        return selectedObjects;
     }
 }
 
@@ -730,7 +638,7 @@ class X3DBubbleCursor : Technique {
         base.Deconstruct();
     }
 
-    public override GameObject Select() {
+    public override List<GameObject> Select() {
         GameObject selectedObject = null;
         float minD = 1e20f, secD = 1e20f;
         foreach (GameObject g in play.playProps) {
@@ -746,7 +654,9 @@ class X3DBubbleCursor : Technique {
         float renderScale = Math.Min(minD + selectedObject.transform.localScale.x, secD - BUBBLE_SPLIT_GAP);
         DrawBubble(bubble, true, cursor.transform.position, QUETERNION_NULL, UNIT_BALL, renderScale);
         DrawBubble(bubble2, true, selectedObject.transform.position, QUETERNION_NULL, UNIT_BALL, selectedObject.transform.localScale.x / 2 * BUBBLE2_SCALE_RATIO);
-        return selectedObject;
+        List<GameObject> selectedObjects = new List<GameObject>();
+        selectedObjects.Add(selectedObject);
+        return selectedObjects;
     }
 }
 
@@ -765,7 +675,7 @@ class GoGo : Technique {
         base.Deconstruct();
     }
 
-    public override GameObject Select() {
+    public override List<GameObject> Select() {
         GameObject selectedObject = null;
         float minD = TOUCH_RANGE;
         foreach (GameObject g in play.playProps) {
@@ -775,19 +685,19 @@ class GoGo : Technique {
                 selectedObject = g;
             }
         }
-        return selectedObject;
+        List<GameObject> selectedObjects = new List<GameObject>();
+        if (selectedObject != null) selectedObjects.Add(selectedObject);
+        return selectedObjects;
     }
 
     public override void Update() {
         Vector3 o = play.cameraHead.transform.position - new Vector3(0, 0.35f, 0);
-        Vector3 v = play.controller.transform.position - o;
-        if (v.magnitude <= LINEAR_RANGE) {
-            hand.transform.position = o + v;
+        float d = (play.controller.transform.position - o).magnitude;
+        if (d <= LINEAR_RANGE) {
+            hand.transform.localPosition = new Vector3(0, 0, 0);
+        } else {
+            hand.transform.localPosition = new Vector3(0, 0, NONLINEAR_RATIO * Mathf.Pow(d - LINEAR_RANGE, 2));
         }
-        else {
-            hand.transform.position = o + v.normalized * (v.magnitude + NONLINEAR_RATIO * Mathf.Pow(v.magnitude - LINEAR_RANGE, 2));
-        }
-        hand.transform.rotation = play.controller.transform.rotation;
     }
 }
 
@@ -809,18 +719,22 @@ class SQUADCone : NaiveCone {
     public static GameObject cursor;
     const float ANGLE_CONE = 0.13f;
     int step = 0;
-    List<GameObject> intersectedObjects = new List<GameObject>();
+    List<GameObject> selectedObjects = new List<GameObject>();
+
+    public SQUADCone() {
+        selectAndColor = true;
+    }
 
     public override void Deconstruct() {
         squad.SetActive(false);
         base.Deconstruct();
     }
 
-    public override GameObject Select() {
+    public override List<GameObject> Select() {
+        selectedObjects.Clear();
         if (step == 0) {
             Vector3 p = play.controller.transform.position;
             Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
-            intersectedObjects.Clear();
             foreach (GameObject g in play.playProps) {
                 Vector3 q = g.transform.position;
                 if (Mathf.Abs(v.x + v.y + v.z) < EPS) continue;
@@ -829,12 +743,11 @@ class SQUADCone : NaiveCone {
                 float r = g.transform.localScale.x / 2;
                 float angle = Mathf.Atan(((i - q).magnitude - r) / (i - p).magnitude);
                 if (angle > ANGLE_CONE) continue;
-                intersectedObjects.Add(g);
+                selectedObjects.Add(g);
             }
         } else if (step == 1) {
-            return null;
         }
-        return null;
+        return selectedObjects;
     }
 
     public override void Update() {
@@ -859,6 +772,6 @@ class SQUADCone : NaiveCone {
             foreach (GameObject g in play.playProps) Play.ChangeColor(g, g.GetComponent<Renderer>().material.color, 1.0f);
             step = 0;
         }
-        return true;
+        return false;
     }
 }
