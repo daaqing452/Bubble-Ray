@@ -12,6 +12,7 @@ using HTC.UnityPlugin.Vive;
 public class Play : MonoBehaviour {
     //  constant
     public const string TAG_PLAY_PROP = "play prop";
+    public static Material MATERIAL_DEFAULT;
 
     //  game object
     public GameObject[] playProps;
@@ -37,6 +38,8 @@ public class Play : MonoBehaviour {
     
     void Start() {
         //  gameobject
+        MATERIAL_DEFAULT = Resources.Load("Trans White") as Material;
+
         cameraHead = GameObject.Find("VROrigin/[CameraRig]/Camera (eye)");
         controllerLeft = GameObject.Find("VROrigin/[CameraRig]/Controller (left)");
         controllerRight = GameObject.Find("VROrigin/[CameraRig]/Controller (right)");
@@ -106,11 +109,8 @@ public class Play : MonoBehaviour {
     }
     
 	void Update() {
-        //  find current selected object
         playProps = GameObject.FindGameObjectsWithTag(TAG_PLAY_PROP);
         technique.Update();
-        List<GameObject> selectedObjects = technique.Select();
-        GameObject selectedObject = (selectedObjects.Count == 0) ? null : selectedObjects[0];
 
         //  accumulate movement, show sign
         if (experiment != null) {
@@ -119,10 +119,15 @@ public class Play : MonoBehaviour {
             signExperimentCompleted.SetActive(experiment.completed);
         }
 
+        //  find current selected object
+        List<GameObject> selectedObjects = technique.Select(); 
+
         //  user event
         if (ViveInput.GetPressDown(handRole, ControllerButton.FullTrigger)) {
             if (technique.Trigger()) {
                 if (experiment != null) {
+                    //selectedObjects = technique.Select();
+                    GameObject selectedObject = (selectedObjects.Count == 0) ? null : selectedObjects[0];
                     int status = experiment.Select(selectedObject);
                     if (status == 1) audioSelectCorrect.Play(); else if (status == 0) audioSelectWrong.Play();
                 }
@@ -159,6 +164,9 @@ public class Play : MonoBehaviour {
         if (a == -1) a = g.GetComponent<Renderer>().material.color.a;
         Color c1 = new Color(c.r, c.g, c.b, a);
         g.GetComponent<Renderer>().material.color = c1;
+    }
+    public static void ChangeColor(GameObject g, GameObject h, float a = -1) {
+        ChangeColor(g, h.GetComponent<Renderer>().material.color, a);
     }
 
     public void OnClick_Start() {
@@ -250,7 +258,7 @@ class Experiment {
 
         //  read
         int lineNo = -1;
-        GameObject newGameObject = null;
+        GameObject newObject = null;
         int selectable = 1;
         StreamReader reader = new StreamReader(new FileStream(fileName, FileMode.Open));
         while (true) {
@@ -268,38 +276,38 @@ class Experiment {
                 case "object":
                     PrimitiveType primitiveType = 0;
                     if (arr[1] == "sphere") primitiveType = PrimitiveType.Sphere;
-                    newGameObject = GameObject.CreatePrimitive(primitiveType);
-                    newGameObject.transform.parent = GameObject.Find("Play").transform;
-                    newGameObject.tag = Play.TAG_PLAY_PROP;
-                    newGameObject.GetComponent<Renderer>().material = Resources.Load("Trans White") as Material;
+                    newObject = GameObject.CreatePrimitive(primitiveType);
+                    newObject.transform.SetParent(GameObject.Find("Play").transform);
+                    newObject.tag = Play.TAG_PLAY_PROP;
+                    newObject.GetComponent<Renderer>().material = Play.MATERIAL_DEFAULT;
                     selectable = 1;
                     break;
                 case "name":
-                    newGameObject.name = line.Substring(5);
+                    newObject.name = line.Substring(5);
                     break;
                 case "selectable":
                     selectable = int.Parse(arr[1]);
                     break;
                 case "position":
                     float px = float.Parse(arr[1]), py = float.Parse(arr[2]), pz = float.Parse(arr[3]);
-                    newGameObject.transform.position = new Vector3(px, py, pz);
+                    newObject.transform.position = new Vector3(px, py, pz);
                     break;
                 case "rotation":
                     float rx = float.Parse(arr[1]), ry = float.Parse(arr[2]), rz = float.Parse(arr[3]);
-                    newGameObject.transform.rotation = new Quaternion(rx, ry, rz, 1);
+                    newObject.transform.rotation = new Quaternion(rx, ry, rz, 1);
                     break;
                 case "scale":
                     float sx = float.Parse(arr[1]), sy = float.Parse(arr[2]), sz = float.Parse(arr[3]);
-                    newGameObject.transform.localScale = new Vector3(sx, sy, sz);
+                    newObject.transform.localScale = new Vector3(sx, sy, sz);
                     break;
                 case "color":
                     float cr = float.Parse(arr[1]), cg = float.Parse(arr[2]), cb = float.Parse(arr[3]);
-                    newGameObject.GetComponent<Renderer>().material.color = new Color(cr, cg, cb);
+                    newObject.GetComponent<Renderer>().material.color = new Color(cr, cg, cb);
                     break;
                 case "end":
-                    if (selectable == 1) selectableObjects.Add(newGameObject);
-                    if (targetObject == null) targetObject = newGameObject;
-                    newGameObject = null;
+                    if (selectable == 1) selectableObjects.Add(newObject);
+                    if (targetObject == null) targetObject = newObject;
+                    newObject = null;
                     break;
             }
         }
@@ -382,6 +390,9 @@ public class Technique {
         return true;
     }
 
+    public static int Sqr(int x) {
+        return x * x;
+    }
     public static float Sqr(float x) {
         return x * x;
     }
@@ -718,7 +729,13 @@ class SQUADCone : NaiveCone {
     public static GameObject squad;
     public static GameObject cursor;
     const float ANGLE_CONE = 0.13f;
+    const string OBJECT_ON_SQUAD_TAG = "on squad";
+    const float OBJECT_ON_SQUAD_SCALE = 80;
+    const float OBJECT_ON_SQUAD_MARGIN = 160;
+    const float OBJECT_ON_SQUAD_DEPTH = 950;
+
     int step = 0;
+    int updateSquad = 0;
     List<GameObject> selectedObjects = new List<GameObject>();
 
     public SQUADCone() {
@@ -731,8 +748,9 @@ class SQUADCone : NaiveCone {
     }
 
     public override List<GameObject> Select() {
-        selectedObjects.Clear();
+        if (updateSquad == 1) updateSquad = 2;
         if (step == 0) {
+            selectedObjects.Clear();
             Vector3 p = play.controller.transform.position;
             Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
             foreach (GameObject g in play.playProps) {
@@ -745,33 +763,82 @@ class SQUADCone : NaiveCone {
                 if (angle > ANGLE_CONE) continue;
                 selectedObjects.Add(g);
             }
-        } else if (step == 1) {
+            return selectedObjects;
         }
-        return selectedObjects;
+        return new List<GameObject>();
     }
 
     public override void Update() {
-        if (step == 1) {
-            Vector3 p = play.controller.transform.position;
-            Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
-            Vector3 o = play.cameraHead.transform.position;
-            Vector3 u = Quaternion2Vector(play.cameraHead.transform.rotation);
-            Vector3 q = o + u.normalized * 500;
-            float t = ((q.x - p.x) * u.x + (q.y - p.y) * u.y + (q.z - p.z) * u.z) / (v.x * u.x + v.y * u.y + v.z * u.z);
-            cursor.transform.position = p + v * t;
-        }
+        if (step != 1) return;
+        if (updateSquad == 2) { DrawSquad(); updateSquad = 0; }
+        Vector3 p = play.controller.transform.position;
+        Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
+        Vector3 o = play.cameraHead.transform.position;
+        Vector3 u = Quaternion2Vector(play.cameraHead.transform.rotation);
+        Vector3 q = o + u.normalized * 450;
+        float t = ((q.x - p.x) * u.x + (q.y - p.y) * u.y + (q.z - p.z) * u.z) / (v.x * u.x + v.y * u.y + v.z * u.z);
+        cursor.transform.position = p + v * t;
     }
-
+    
     public override bool Trigger() {
         if (step == 0) {
             squad.SetActive(true);
-            foreach (GameObject g in play.playProps) Play.ChangeColor(g, g.GetComponent<Renderer>().material.color, 0.3f);
+            foreach (GameObject g in play.playProps) Play.ChangeColor(g, g, 0.1f);
+            updateSquad = 1;
             step = 1;
+            return false;
         } else if (step == 1) {
-            squad.SetActive(false);
-            foreach (GameObject g in play.playProps) Play.ChangeColor(g, g.GetComponent<Renderer>().material.color, 1.0f);
-            step = 0;
+            int b = BelongGroup(cursor.transform.localPosition);
+            List<GameObject> newSelectedObjects = new List<GameObject>();
+            for (int i = b; i < selectedObjects.Count; i += 4) newSelectedObjects.Add(selectedObjects[i]);
+            if (newSelectedObjects.Count == 0) return false;
+            selectedObjects = newSelectedObjects;
+            if (selectedObjects.Count == 1) {
+                squad.SetActive(false);
+                foreach (GameObject g in play.playProps) Play.ChangeColor(g, g, 1.0f);
+                step = 0;
+            } else {
+
+            }
         }
         return false;
+    }
+
+    void DrawSquad() {
+        GameObject[] objectsOnSquad = GameObject.FindGameObjectsWithTag(OBJECT_ON_SQUAD_TAG);
+        foreach (GameObject g in objectsOnSquad) UnityEngine.Object.Destroy(g);
+        for (int i = 0; i < selectedObjects.Count; i++) {
+            GameObject g = selectedObjects[i];
+            GameObject newObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            newObject.transform.SetParent(squad.transform);
+            newObject.tag = OBJECT_ON_SQUAD_TAG;
+            newObject.GetComponent<Renderer>().material = g.GetComponent<Renderer>().material;
+            Play.ChangeColor(newObject, g, 1.0f);
+            Vector3 p = GeneratePosition(i % 4, i / 4) * OBJECT_ON_SQUAD_MARGIN;
+            p.z = OBJECT_ON_SQUAD_DEPTH;
+            newObject.transform.localPosition = p;
+            newObject.transform.localScale = UNIT_BALL * OBJECT_ON_SQUAD_SCALE;
+        }
+    }
+
+    Vector3 GeneratePosition(int group, int index) {
+        index++;
+        int row = (int)(Math.Sqrt(index) + 1e-10);
+        int column = Sqr(row) - index - (row - 1);
+        switch (group) {
+            case 0: return new Vector3(-column, row, 0);
+            case 1: return new Vector3(row, column, 0);
+            case 2: return new Vector3(column, -row, 0);
+            case 3: return new Vector3(-row, -column, 0);
+            default: return new Vector3(0, 0, 0);
+        }
+    }
+
+    int BelongGroup(Vector3 p) {
+        if (p.y >= 0 && Mathf.Abs(p.x) <= Mathf.Abs(p.y)) return 0;
+        if (p.x >= 0 && Mathf.Abs(p.y) <= Mathf.Abs(p.x)) return 1;
+        if (p.y <= 0 && Mathf.Abs(p.x) <= Mathf.Abs(p.y)) return 2;
+        if (p.x <= 0 && Mathf.Abs(p.y) <= Mathf.Abs(p.x)) return 3;
+        return -1;
     }
 }
