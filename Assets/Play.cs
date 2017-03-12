@@ -788,6 +788,7 @@ class SQUADCone : NaiveCone {
     
     public override bool Trigger() {
         if (step == 0) {
+            if (selectedObjects.Count == 1) return true;
             squad.SetActive(true);
             foreach (GameObject g in play.playProps) Play.ChangeColor(g, g, 0.1f);
             updateSquad = true;
