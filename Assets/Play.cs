@@ -590,17 +590,19 @@ class BubbleRay : NaiveRay {
 class HeuristicRay : NaiveRay {
     const float ANGLE_LIMIT = 0.2f;
     const float ACCUMULATE_RATE = 0.05f;
-    int n;
+    int n = 0;
     float[] score;
 
     public HeuristicRay() : base() {
         method = "Heuristic Ray";
         selectAndColor = true;
-        n = play.playProps.Length;
-        score = new float[n];
     }
 
     public override List<GameObject> Select() {
+        if (n != play.playProps.Length) {
+            n = play.playProps.Length;
+            score = new float[n];
+        }
         Vector3 p = play.controller.transform.position;
         Vector3 v = Quaternion2Vector(play.controller.transform.rotation);
         GameObject selectedObject = null;
@@ -737,11 +739,6 @@ class SQUADCone : NaiveCone {
 
     public SQUADCone() {
         selectAndColor = true;
-
-        for (int i = 0; i < 20; i++) {
-            Vector3 a = GeneratePosition(0, i);
-            Debug.Log(a.x + " " + a.y);
-        }
     }
 
     public override void Deconstruct() {
