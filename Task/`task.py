@@ -26,12 +26,12 @@ def cubic():
 	f.close()
 def near():
 	global f
-	f = open('size-small-near.conf', 'w')
+	f = open('size-far-large.conf', 'w')
 	for i in range(10):
-		x = random.random() * 0.8 - 0.4
-		y = random.random() * 0.5 - 0.25
-		z = random.random() * 0.5 + 0.2
-		write(x, y, z, 0.02)
+		x = random.random() * 20 - 10
+		y = random.random() * 20 - 10
+		z = random.random() * 20 + 10
+		write(x, y, z, 1.0)
 	f.close()
 def radiate():
 	f = open('radiate.conf', 'w')

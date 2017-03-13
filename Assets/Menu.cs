@@ -98,15 +98,7 @@ public class Menu : MonoBehaviour {
             SetButtonColor(g, COLOR_NONE);
         }
     }
-
-    public void OnClick_BubbleRay_BackPlane() {
-        change_BubbleRay = true;
-        setting_BubbleRay = "Back Plane";
-    }
-    public void OnClick_BubbleRay_BackSphere() {
-        change_BubbleRay = true;
-        setting_BubbleRay = "Back Sphere";
-    }
+    
     public void OnClick_BubbleRay_HandDistance() {
         change_BubbleRay = true;
         setting_BubbleRay = "Hand Distance";
@@ -114,6 +106,10 @@ public class Menu : MonoBehaviour {
     public void OnClick_BubbleRay_HandAngular() {
         change_BubbleRay = true;
         setting_BubbleRay = "Hand Angular";
+    }
+    public void OnClick_BubbleRay_HandAngularNear() {
+        change_BubbleRay = true;
+        setting_BubbleRay = "Hand Angular Near";
     }
     public void OnClick_BubbleRay_Test() {
         change_BubbleRay = true;

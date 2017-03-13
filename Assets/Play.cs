@@ -573,10 +573,28 @@ class BubbleRay : NaiveRay {
                     }
                     renderRotation = Vector2Quaternion(renderPoint - e);
                     break;
-                /*case "Back Plane":
-                case "Back Sphere":
-                case "Dynamic Depth Plane":
-                case "Dynamic Depth Sphere":*/
+
+                case "Hand Angular Near":
+                    foreach (GameObject g in play.playProps) {
+                        Vector3 q = g.transform.position;
+                        if (Mathf.Abs(v.x + v.y + v.z) < EPS) continue;
+                        float t = -((p.x - q.x) * v.x + (p.y - q.y) * v.y + (p.z - q.z) * v.z) / (Sqr(v.x) + Sqr(v.y) + Sqr(v.z));
+                        Vector3 i = p + v * t;
+                        float r = g.transform.localScale.x / 2;
+                        float f = Mathf.Atan(((i - q).magnitude - r) / (i - p).magnitude);
+                        if (f < minF) {
+                            renderPoint = i;
+                            renderScale = (i - q).magnitude - g.transform.localScale.x / 2;
+                            minF = f;
+                            selectedObject = g;
+                        }
+                    }
+                    renderRotation = play.controller.transform.rotation;
+                    break;
+                    /*case "Back Plane":
+                    case "Back Sphere":
+                    case "Dynamic Depth Plane":
+                    case "Dynamic Depth Sphere":*/
             }
             selectedObjects.Add(selectedObject);
         }

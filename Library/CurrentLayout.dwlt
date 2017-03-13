@@ -340,8 +340,7 @@ MonoBehaviour:
     height: 250
   m_SearchFilter:
     m_NameFilter: 
-    m_ClassNames:
-    - Material
+    m_ClassNames: []
     m_AssetLabels: []
     m_AssetBundleNames: []
     m_VersionControlStates: []
@@ -349,7 +348,8 @@ MonoBehaviour:
     m_ScenePaths: []
     m_ShowAllHits: 0
     m_SearchArea: 0
-    m_Folders: []
+    m_Folders:
+    - Assets
   m_ViewMode: 1
   m_StartGridSize: 64
   m_LastFolders:
@@ -359,8 +359,8 @@ MonoBehaviour:
   m_IsLocked: 0
   m_FolderTreeState:
     scrollPos: {x: 0, y: 0}
-    m_SelectedIDs: 01ca9a3b
-    m_LastClickedID: 1000000001
+    m_SelectedIDs: 48260000
+    m_LastClickedID: 9800
     m_ExpandedIDs: 000000004826000076260000f8260000482700006e2700007627000078270000d027000000ca9a3bffffff7f
     m_RenameOverlay:
       m_UserAcceptedRename: 0
@@ -505,9 +505,9 @@ MonoBehaviour:
     height: 679
   m_TreeViewState:
     scrollPos: {x: 0, y: 0}
-    m_SelectedIDs: ce280000
-    m_LastClickedID: 10446
-    m_ExpandedIDs: e2fbffff00000000242a0000882a0000
+    m_SelectedIDs: 
+    m_LastClickedID: 0
+    m_ExpandedIDs: e2fbffff000000004228000080290000a2290000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
