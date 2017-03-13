@@ -674,7 +674,7 @@ class GoGo : Technique {
     public static GameObject hand;
     const float LINEAR_RANGE = 0.3f;
     const float NONLINEAR_RATIO = 100.0f;
-    const float TOUCH_RANGE = 0.2f;
+    const float TOUCH_RANGE = 0.3f;
 
     public GoGo() : base() {
         hand.SetActive(true);
@@ -788,7 +788,7 @@ class SQUADCone : NaiveCone {
     
     public override bool Trigger() {
         if (step == 0) {
-            if (selectedObjects.Count == 1) return true;
+            if (selectedObjects.Count <= 1) return true;
             squad.SetActive(true);
             foreach (GameObject g in play.playProps) Play.ChangeColor(g, g, 0.1f);
             updateSquad = true;
