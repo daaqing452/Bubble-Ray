@@ -36,8 +36,7 @@ public class Menu : MonoBehaviour {
 
         //  initiate
         setting_BubbleRay = "Hand Distance";
-        //setting_Technique = "Bubble Ray";
-        setting_Technique = "SQUAD Cone";
+        setting_Technique = "Bubble Ray";
     }
     
     void Update() {

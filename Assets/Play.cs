@@ -437,8 +437,7 @@ public class Technique {
             }
             fishPoleRenderer.SetPositions(bs.ToArray());
             fishPoleRenderer.positionCount = bs.Count;
-        }
-        else {
+        } else {
             fishPoleRenderer.positionCount = 0;
         }
     }
@@ -554,7 +553,7 @@ class BubbleRay : NaiveRay {
                     break;
 
                 case "Hand Angular":
-                    float maxDepth = 100;
+                    float maxDepth = -1;
                     foreach (GameObject g in play.playProps) maxDepth = Mathf.Max(maxDepth, (g.transform.position - p).magnitude + g.transform.localScale.x);
                     foreach (GameObject g in play.playProps) {
                         Vector3 q = g.transform.position;
@@ -592,7 +591,7 @@ class HeuristicRay : NaiveRay {
     const float ACCUMULATE_RATE = 0.05f;
     int n = 0;
     float[] score;
-
+    
     public HeuristicRay() : base() {
         method = "Heuristic Ray";
         selectAndColor = true;
@@ -739,10 +738,34 @@ class SQUADCone : NaiveCone {
 
     public SQUADCone() {
         selectAndColor = true;
+        //  set rendering mode = transparent
+        foreach (GameObject g in play.playProps) {
+            Material m = g.GetComponent<Renderer>().material;
+            m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+            m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            m.SetInt("_ZWrite", 0);
+            m.DisableKeyword("_ALPHATEST_ON");
+            m.DisableKeyword("_ALPHABLEND_ON");
+            m.EnableKeyword("_ALPHAPREMULTIPLY_ON");
+            m.renderQueue = 3000;
+            g.GetComponent<Renderer>().material = m;
+        }
     }
 
     public override void Deconstruct() {
         squad.SetActive(false);
+        //  set rendering mode = opaque
+        foreach (GameObject g in play.playProps) {
+            Material m = g.GetComponent<Renderer>().material;
+            m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+            m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+            m.SetInt("_ZWrite", 1);
+            m.DisableKeyword("_ALPHATEST_ON");
+            m.DisableKeyword("_ALPHABLEND_ON");
+            m.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            m.renderQueue = -1;
+            g.GetComponent<Renderer>().material = m;
+        }
         base.Deconstruct();
     }
 
