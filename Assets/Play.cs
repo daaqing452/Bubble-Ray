@@ -335,7 +335,7 @@ class Experiment {
         if (!started || nextPattern == "random") {
             while (true) {
                 int x = Technique.random.Next() % selectableObjects.Count;
-                targetObject = play.playProps[x];
+                targetObject = selectableObjects[x];
                 if (targetObject != prevTargetObject) break;
             }
         }
@@ -690,7 +690,7 @@ class X3DBubbleCursor : Technique {
 class GoGo : Technique {
     public static GameObject hand;
     const float LINEAR_RANGE = 0.3f;
-    const float NONLINEAR_RATIO = 100.0f;
+    const float NONLINEAR_RATIO = 150.0f;
     const float TOUCH_RANGE = 0.3f;
 
     public GoGo() : base() {
@@ -718,7 +718,7 @@ class GoGo : Technique {
     }
 
     public override void Update() {
-        Vector3 o = play.cameraHead.transform.position - new Vector3(0, 0.35f, 0);
+        Vector3 o = play.cameraHead.transform.position - new Vector3(0, 0.0f, 0);
         float d = (play.controller.transform.position - o).magnitude;
         if (d <= LINEAR_RANGE) {
             hand.transform.localPosition = new Vector3(0, 0, 0);
