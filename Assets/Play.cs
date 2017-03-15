@@ -151,6 +151,7 @@ public class Play : MonoBehaviour {
     public void ChangeTechnique<T>() where T : Technique, new() {
         if (technique != null) technique.Deconstruct();
         technique = new T();
+        experiment.Clear();
     }
 
     public string SettingString() {
@@ -247,6 +248,15 @@ class Experiment {
         prevPosition = nowPosition;
     }
 
+    public void Clear() {
+        targetObject = selectableObjects[0];
+        completed = false;
+        startSignal = false;
+        started = false;
+        record = new List<string>();
+        MakeUniformObjects();
+    }
+
     void Load(string fileName) {
         //  clean up
         completed = false;
@@ -316,18 +326,7 @@ class Experiment {
         //  generate uniform gameobjects
         int n = selectableObjects.Count;
         if (trialMax == -1) trialMax = n * DEFAULT_TRIAL_PER_OBJECT;
-        if (nextPattern == "uniform") {
-            int gt = (trialMax - 1) / n + 1;
-            for (int i = 0; i <= gt; i++) {
-                int[] ra;
-                while (true) {
-                    ra = Technique.Shuffle(n);
-                    int ulen = uniformObjects.Count;
-                    if (ulen == 0 || uniformObjects[ulen - 1] != selectableObjects[ra[0]]) break;
-                }
-                foreach (int j in ra) uniformObjects.Add(selectableObjects[j]);
-            }
-        }
+        if (nextPattern == "uniform") MakeUniformObjects();
     }
 
     void Next() {
@@ -350,6 +349,20 @@ class Experiment {
         foreach (string r in record) writer.WriteLine(r);
         writer.Close();
         play.audioComplete.Play();
+    }
+    
+    void MakeUniformObjects() {
+        int n = selectableObjects.Count;
+        int gt = (trialMax - 1) / n + 1;
+        for (int i = 0; i <= gt; i++) {
+            int[] ra;
+            while (true) {
+                ra = Technique.Shuffle(n);
+                int ulen = uniformObjects.Count;
+                if (ulen == 0 || uniformObjects[ulen - 1] != selectableObjects[ra[0]]) break;
+            }
+            foreach (int j in ra) uniformObjects.Add(selectableObjects[j]);
+        }
     }
 
     void StartSignalTimeOut(object source, ElapsedEventArgs args) {
@@ -690,8 +703,9 @@ class X3DBubbleCursor : Technique {
 class GoGo : Technique {
     public static GameObject hand;
     const float LINEAR_RANGE = 0.3f;
-    const float NONLINEAR_RATIO = 150.0f;
+    const float NONLINEAR_RATIO = 200.0f;
     const float TOUCH_RANGE = 0.3f;
+    static Vector3 EYE_CHEST_BIAS = new Vector3(0, 0.25f, 0);
 
     public GoGo() : base() {
         hand.SetActive(true);
@@ -718,7 +732,7 @@ class GoGo : Technique {
     }
 
     public override void Update() {
-        Vector3 o = play.cameraHead.transform.position - new Vector3(0, 0.0f, 0);
+        Vector3 o = play.cameraHead.transform.position - EYE_CHEST_BIAS;
         float d = (play.controller.transform.position - o).magnitude;
         if (d <= LINEAR_RANGE) {
             hand.transform.localPosition = new Vector3(0, 0, 0);

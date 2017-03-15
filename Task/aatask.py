@@ -82,7 +82,7 @@ def depth():
 	global f
 	ds = [(2, 5), (2, 20), (5, 20)]
 	for d in ds:
-		f = open('depth-(' + str(d[0]) + ',' + str(d[1]) + ').conf', 'w')
+		f = open('depth-' + str(d[0]) + 't' + str(d[1]) + '.conf', 'w')
 		for i in range(0, 12):
 			z = d[i % 2]
 			x = z / 2 * math.cos(i / 6 * PI)
@@ -114,4 +114,4 @@ def occlusion():
 				# write(x, y, z, 0.5)
 		f.close()
 
-occlusion()
+xxx
