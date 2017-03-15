@@ -49,7 +49,7 @@ def parse(fname):
 
 fout = open('res.csv', 'w')
 fout.write('name,subsection,level,technique,time,move,error\n')
-names = ['guyizheng']
+names = ['huyuan']
 for name in names:
 	fnames = os.listdir(name + '/')
 	for fname in fnames:

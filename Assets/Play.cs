@@ -24,6 +24,7 @@ public class Play : MonoBehaviour {
 
     GameObject signExperimentCompleted;
     GameObject signExperimentStart;
+    public GameObject info;
     Dropdown taskSelection;
     Text userName;
     
@@ -48,6 +49,7 @@ public class Play : MonoBehaviour {
 
         signExperimentCompleted = GameObject.Find("Sign Experiment Completed");
         signExperimentStart = GameObject.Find("Sign Experiment Start");
+        info = GameObject.Find("Menu/Info");
         taskSelection = GameObject.Find("Task Selection").GetComponent<Dropdown>();
         userName = GameObject.Find("User Name Text").GetComponent<Text>();
 
@@ -238,6 +240,7 @@ class Experiment {
             record.Add("select " + targetObject.name + " " + correct + " " + movementTotal + " " + Technique.TimeString());
             if (trial >= trialMax) Complete();
         }
+        play.info.GetComponent<Text>().text = trial.ToString();
         return correct ? 1 : 0;
     }
 
