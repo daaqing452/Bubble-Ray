@@ -21,7 +21,6 @@ def parse(fname):
 	f = open(name + '/' + fname, 'r')
 	cntFalse = 0
 	cntTrue = 0
-	moveTotal = 0
 	while True:
 		line = f.readline()
 		if len(line) == 0: break
@@ -41,15 +40,15 @@ def parse(fname):
 				cntFalse += 1
 			else:
 				pass
-			moveTotal += float(move)
 		else:
 			pass
 	f.close()
-	fout.write(name + ',' + subsection + ',' + level + ',' + technique + ',' + str(getTime(startTime, endTime)) + ',' + str(moveTotal) + ',' + str(1.0 * cntFalse / cntTrue) + '\n')	
+	fout.write(name + ',' + subsection + ',' + level[0] + ',' + level[1] + ',' + technique + ',' + str(getTime(startTime, endTime)) + ',' + move + ',' + str(1.0 * cntFalse / cntTrue) + '\n')	
 
-fout = open('res.csv', 'w')
-fout.write('name,subsection,level,technique,time,move,error\n')
-names = ['huyuan']
+# names = ['huyuan', 'guyizheng', 'luyiqin', 'yanyukang']
+names = ['xiexiaohui']
+fout = open(names[0] + '.csv', 'w')
+fout.write('name,subsection,distance,size,technique,time,move,error\n')
 for name in names:
 	fnames = os.listdir(name + '/')
 	for fname in fnames:
