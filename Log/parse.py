@@ -31,7 +31,7 @@ def parse(fname):
 			startTime = arr[1]
 		elif op == 'select':
 			obj = arr[1]
-			torf = arr[2]
+			torf = arr[2]#
 			move = arr[3]
 			endTime = arr[4]
 			if torf == 'True':
@@ -45,8 +45,8 @@ def parse(fname):
 	f.close()
 	fout.write(name + ',' + subsection + ',' + level[0] + ',' + level[1] + ',' + technique + ',' + str(getTime(startTime, endTime)) + ',' + move + ',' + str(1.0 * cntFalse / cntTrue) + '\n')	
 
-# names = ['huyuan', 'guyizheng', 'luyiqin', 'yanyukang']
-names = ['xiexiaohui']
+# names = ['huyuan', 'guyizheng', 'luyiqin', 'yanyukang', 'xiexiaohui', 'liguohao']
+names = ['shijiaxin']
 fout = open(names[0] + '.csv', 'w')
 fout.write('name,subsection,distance,size,technique,time,move,error\n')
 for name in names:

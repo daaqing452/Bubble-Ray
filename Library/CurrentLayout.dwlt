@@ -13,8 +13,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_PixelRect:
     serializedVersion: 2
-    x: 76
-    y: 51
+    x: 66
+    y: 55
     width: 1836
     height: 1021
   m_ShowMode: 4
@@ -334,8 +334,8 @@ MonoBehaviour:
   m_DepthBufferBits: 0
   m_Pos:
     serializedVersion: 2
-    x: 76
-    y: 800
+    x: 66
+    y: 804
     width: 1557
     height: 250
   m_SearchFilter:
@@ -416,7 +416,7 @@ MonoBehaviour:
   m_ListAreaState:
     m_SelectedInstanceIDs: 
     m_LastClickedInstanceID: 0
-    m_HadKeyboardFocusLastEvent: 0
+    m_HadKeyboardFocusLastEvent: 1
     m_ExpandedInstanceIDs: 6a1c000050210000fcd0feffb41c000034050000002c0000bc2400000000000046270000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
@@ -466,8 +466,8 @@ MonoBehaviour:
   m_DepthBufferBits: 0
   m_Pos:
     serializedVersion: 2
-    x: 1637
-    y: 100
+    x: 1627
+    y: 104
     width: 275
     height: 950
   m_ScrollPosition: {x: 0, y: 0}
@@ -499,14 +499,14 @@ MonoBehaviour:
   m_DepthBufferBits: 0
   m_Pos:
     serializedVersion: 2
-    x: 76
-    y: 100
+    x: 66
+    y: 104
     width: 221
     height: 679
   m_TreeViewState:
     scrollPos: {x: 0, y: 0}
-    m_SelectedIDs: 
-    m_LastClickedID: 0
+    m_SelectedIDs: d89dfeff
+    m_LastClickedID: -90664
     m_ExpandedIDs: e2fbffff00000000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
@@ -552,8 +552,8 @@ MonoBehaviour:
   m_DepthBufferBits: 32
   m_Pos:
     serializedVersion: 2
-    x: 1075
-    y: 100
+    x: 1065
+    y: 104
     width: 558
     height: 679
   m_SceneLighting: 1
@@ -626,8 +626,8 @@ MonoBehaviour:
   m_DepthBufferBits: 32
   m_Pos:
     serializedVersion: 2
-    x: 301
-    y: 100
+    x: 291
+    y: 104
     width: 770
     height: 679
   m_MaximizeOnPlay: 0
