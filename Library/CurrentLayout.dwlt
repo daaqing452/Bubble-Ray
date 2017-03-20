@@ -13,8 +13,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_PixelRect:
     serializedVersion: 2
-    x: 66
-    y: 55
+    x: 70
+    y: 51
     width: 1836
     height: 1021
   m_ShowMode: 4
@@ -334,8 +334,8 @@ MonoBehaviour:
   m_DepthBufferBits: 0
   m_Pos:
     serializedVersion: 2
-    x: 66
-    y: 804
+    x: 70
+    y: 800
     width: 1557
     height: 250
   m_SearchFilter:
@@ -466,8 +466,8 @@ MonoBehaviour:
   m_DepthBufferBits: 0
   m_Pos:
     serializedVersion: 2
-    x: 1627
-    y: 104
+    x: 1631
+    y: 100
     width: 275
     height: 950
   m_ScrollPosition: {x: 0, y: 0}
@@ -499,14 +499,14 @@ MonoBehaviour:
   m_DepthBufferBits: 0
   m_Pos:
     serializedVersion: 2
-    x: 66
-    y: 104
+    x: 70
+    y: 100
     width: 221
     height: 679
   m_TreeViewState:
     scrollPos: {x: 0, y: 0}
-    m_SelectedIDs: d89dfeff
-    m_LastClickedID: -90664
+    m_SelectedIDs: 
+    m_LastClickedID: 0
     m_ExpandedIDs: e2fbffff00000000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
@@ -552,8 +552,8 @@ MonoBehaviour:
   m_DepthBufferBits: 32
   m_Pos:
     serializedVersion: 2
-    x: 1065
-    y: 104
+    x: 1069
+    y: 100
     width: 558
     height: 679
   m_SceneLighting: 1
@@ -626,8 +626,8 @@ MonoBehaviour:
   m_DepthBufferBits: 32
   m_Pos:
     serializedVersion: 2
-    x: 291
-    y: 104
+    x: 295
+    y: 100
     width: 770
     height: 679
   m_MaximizeOnPlay: 0
