@@ -46,7 +46,7 @@ def parse(fname):
 	fout.write(name + ',' + subsection + ',' + level[0] + ',' + level[1] + ',' + technique + ',' + str(getTime(startTime, endTime)) + ',' + move + ',' + str(1.0 * cntFalse / cntTrue) + '\n')	
 
 # names = ['huyuan', 'guyizheng', 'luyiqin', 'yanyukang', 'xiexiaohui', 'liguohao']
-names = ['yangzhican']
+names = ['zhanyulong']
 fout = open(names[0] + '.csv', 'w')
 fout.write('name,subsection,distance,size,technique,time,move,error\n')
 for name in names:
