@@ -137,6 +137,7 @@ public class Play : MonoBehaviour {
         
         //  color
         foreach (GameObject g in playProps) {
+            if (g.name.Length >= 3 && g.name.Substring(0, 3) == Experiment.COLOR_STATIC_SIGN) continue;
             if (selectedObjects.Contains(g) && g == experiment.targetObject) {
                 ChangeColor(g, Color.cyan);
             } else if (g == experiment.targetObject) {
@@ -182,6 +183,7 @@ public class Play : MonoBehaviour {
 class Experiment {
     //  constant
     const int DEFAULT_TRIAL_PER_OBJECT = 3;
+    public const string COLOR_STATIC_SIGN = "[c]";
 
     //  main
     public GameObject targetObject = null;
@@ -312,6 +314,7 @@ class Experiment {
                 case "color":
                     float cr = float.Parse(arr[1]), cg = float.Parse(arr[2]), cb = float.Parse(arr[3]);
                     newObject.GetComponent<Renderer>().material.color = new Color(cr, cg, cb);
+                    newObject.name = COLOR_STATIC_SIGN + newObject.name;
                     break;
                 case "end":
                     if (selectable == 1) selectableObjects.Add(newObject);
